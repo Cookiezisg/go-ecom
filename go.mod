@@ -1,3 +1,3 @@
-module ecommerce_system
+module ecommerce-system
 
 go 1.25.5
