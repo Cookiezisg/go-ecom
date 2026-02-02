@@ -1,0 +1,30 @@
+Name: order-service
+ListenOn: 0.0.0.0:8082
+Etcd:
+  Hosts:
+    - localhost:2379
+  Key: order.rpc
+Mode: dev
+Timeout: 3000
+
+# 数据库配置
+Database:
+  Host: localhost
+  Port: 3306
+  User: root
+  Password: your_password
+  Database: ecommerce
+  Charset: utf8mb4
+  MaxOpenConns: 100
+  MaxIdleConns: 10
+  ConnMaxLifetime: 3600
+  ConnMaxIdleTime: 600
+
+# Redis配置
+Redis:
+  Host: localhost
+  Port: 6379
+  Password: ""
+  Database: 0
+  PoolSize: 10
+  MinIdleConns: 5

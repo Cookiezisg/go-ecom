@@ -1,0 +1,46 @@
+# API Gateway 配置示例
+# 参考: https://go-zero.dev/docs/tutorials/gateway/grpc
+
+Name: api-gateway
+Host: 0.0.0.0
+Port: 8080
+Mode: dev
+
+# 超时配置
+Timeout: 50000
+
+# 日志配置
+Log:
+  ServiceName: api-gateway
+  Mode: console
+  Level: debug
+  Path: logs
+  Compress: true
+  KeepDays: 7
+  StackCooldownMillis: 100
+
+# Prometheus 配置
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9090
+  Path: /metrics
+
+# gRPC 上游服务配置
+Upstreams:
+  # 用户服务
+  - Name: user-service
+    Grpc:
+      Target: localhost:8000
+      Timeout: 2000
+    Mappings:
+      - Method: post
+        Path: /api/v1/user/register
+        RpcPath: user.v1.UserService/Register
+      - Method: post
+        Path: /api/v1/user/login
+        RpcPath: user.v1.UserService/Login
+      - Method: get
+        Path: /api/v1/user/info
+        RpcPath: user.v1.UserService/GetUserInfo
+
+

@@ -1,0 +1,56 @@
+# 搜索服务配置示例
+# 复制此文件为 search-config.yaml 并修改相应配置
+
+# 服务配置
+Name: search-service
+ListenOn: 0.0.0.0:8090
+Mode: dev
+
+# 超时配置
+Timeout: 5000
+
+# CPU 降载阈值
+CpuThreshold: 900
+
+# 健康检查
+Health: true
+
+# 中间件配置
+Middlewares:
+  Trace: true
+  Recover: true
+  Stat: true
+  Prometheus: true
+  Breaker: true
+
+# 日志配置
+Log:
+  ServiceName: search-service
+  Mode: console
+  Level: debug
+  Path: logs
+  Compress: true
+  KeepDays: 7
+  StackCooldownMillis: 100
+
+# Prometheus 配置
+Prometheus:
+  Host: 0.0.0.0
+  Port: 9100
+  Path: /metrics
+
+# Elasticsearch配置
+Elasticsearch:
+  Addresses:
+    - http://localhost:9200
+  Username: ""
+  Password: ""
+
+# Redis配置（用于缓存）
+Redis:
+  Host: localhost
+  Port: 6379
+  Password: ""
+  Database: 6
+  PoolSize: 10
+  MinIdleConns: 5
