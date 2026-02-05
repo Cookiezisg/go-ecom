@@ -1,5 +1,5 @@
 -- 用户表
-CREATE TABLE `user` (
+CREATE TABLE IF NOT EXISTS `user` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '用户ID',
     `username` VARCHAR(50) NOT NULL COMMENT '用户名',
     `nickname` VARCHAR(50) DEFAULT NULL COMMENT '昵称',
@@ -23,7 +23,7 @@ CREATE TABLE `user` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户表';
 
 -- 用户地址表
-CREATE TABLE `address` (
+CREATE TABLE IF NOT EXISTS `address` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '地址ID',
     `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
     `receiver_name` VARCHAR(50) NOT NULL COMMENT '收货人姓名',
@@ -43,7 +43,7 @@ CREATE TABLE `address` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户地址表';
 
 -- 用户凭证表（密码、第三方登录等）
-CREATE TABLE `credential` (
+CREATE TABLE IF NOT EXISTS `credential` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '凭证ID',
     `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
     `credential_type` TINYINT NOT NULL COMMENT '凭证类型: 1-密码, 2-微信, 3-支付宝, 4-QQ',
@@ -62,7 +62,7 @@ CREATE TABLE `credential` (
 -- ============================================
 
 -- 商品类目表
-CREATE TABLE `category` (
+CREATE TABLE IF NOT EXISTS `category` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '类目ID',
     `parent_id` BIGINT UNSIGNED DEFAULT 0 COMMENT '父类目ID，0表示顶级类目',
     `name` VARCHAR(100) NOT NULL COMMENT '类目名称',
@@ -80,7 +80,7 @@ CREATE TABLE `category` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品类目表';
 
 -- 商品表（SPU）
-CREATE TABLE `product` (
+CREATE TABLE IF NOT EXISTS `product` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '商品ID',
     `spu_code` VARCHAR(50) NOT NULL COMMENT 'SPU编码',
     `name` VARCHAR(200) NOT NULL COMMENT '商品名称',
@@ -108,7 +108,7 @@ CREATE TABLE `product` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='商品表(SPU)';
 
 -- SKU表
-CREATE TABLE `sku` (
+CREATE TABLE IF NOT EXISTS `sku` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'SKU ID',
     `product_id` BIGINT UNSIGNED NOT NULL COMMENT '商品ID',
     `sku_code` VARCHAR(50) NOT NULL COMMENT 'SKU编码',
@@ -131,7 +131,7 @@ CREATE TABLE `sku` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='SKU表';
 
 -- 商品属性表
-CREATE TABLE `attr` (
+CREATE TABLE IF NOT EXISTS `attr` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '属性ID',
     `category_id` BIGINT UNSIGNED NOT NULL COMMENT '类目ID',
     `name` VARCHAR(50) NOT NULL COMMENT '属性名称',
@@ -152,7 +152,7 @@ CREATE TABLE `attr` (
 -- ============================================
 
 -- 库存表
-CREATE TABLE `inventory` (
+CREATE TABLE IF NOT EXISTS `inventory` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '库存ID',
     `sku_id` BIGINT UNSIGNED NOT NULL COMMENT 'SKU ID',
     `total_stock` INT NOT NULL DEFAULT 0 COMMENT '总库存',
@@ -168,7 +168,7 @@ CREATE TABLE `inventory` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='库存表';
 
 -- 库存流水表
-CREATE TABLE `inventory_log` (
+CREATE TABLE IF NOT EXISTS `inventory_log` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '流水ID',
     `sku_id` BIGINT UNSIGNED NOT NULL COMMENT 'SKU ID',
     `order_id` BIGINT UNSIGNED DEFAULT NULL COMMENT '订单ID',
@@ -190,7 +190,7 @@ CREATE TABLE `inventory_log` (
 -- ============================================
 
 -- 订单表
-CREATE TABLE `orders` (
+CREATE TABLE IF NOT EXISTS `orders` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '订单ID',
     `order_no` VARCHAR(32) NOT NULL COMMENT '订单号',
     `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
@@ -221,7 +221,7 @@ CREATE TABLE `orders` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单表';
 
 -- 订单商品项表
-CREATE TABLE `order_item` (
+CREATE TABLE IF NOT EXISTS `order_item` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '订单项ID',
     `order_id` BIGINT UNSIGNED NOT NULL COMMENT '订单ID',
     `order_no` VARCHAR(32) NOT NULL COMMENT '订单号',
@@ -244,7 +244,7 @@ CREATE TABLE `order_item` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='订单商品项表';
 
 -- 订单操作日志表
-CREATE TABLE `order_log` (
+CREATE TABLE IF NOT EXISTS `order_log` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '日志ID',
     `order_id` BIGINT UNSIGNED NOT NULL COMMENT '订单ID',
     `order_no` VARCHAR(32) NOT NULL COMMENT '订单号',
@@ -266,7 +266,7 @@ CREATE TABLE `order_log` (
 -- ============================================
 
 -- 支付单表
-CREATE TABLE `payment` (
+CREATE TABLE IF NOT EXISTS `payment` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '支付单ID',
     `payment_no` VARCHAR(32) NOT NULL COMMENT '支付单号',
     `order_id` BIGINT UNSIGNED NOT NULL COMMENT '订单ID',
@@ -291,7 +291,7 @@ CREATE TABLE `payment` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='支付单表';
 
 -- 支付流水表
-CREATE TABLE `payment_log` (
+CREATE TABLE IF NOT EXISTS `payment_log` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '流水ID',
     `payment_id` BIGINT UNSIGNED NOT NULL COMMENT '支付单ID',
     `payment_no` VARCHAR(32) NOT NULL COMMENT '支付单号',
@@ -314,7 +314,7 @@ CREATE TABLE `payment_log` (
 -- ============================================
 
 -- 优惠券表
-CREATE TABLE `coupon` (
+CREATE TABLE IF NOT EXISTS `coupon` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '优惠券ID',
     `name` VARCHAR(100) NOT NULL COMMENT '优惠券名称',
     `type` TINYINT NOT NULL COMMENT '优惠券类型: 1-满减券, 2-折扣券, 3-免运费券',
@@ -336,7 +336,7 @@ CREATE TABLE `coupon` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='优惠券表';
 
 -- 用户优惠券表
-CREATE TABLE `user_coupon` (
+CREATE TABLE IF NOT EXISTS `user_coupon` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT 'ID',
     `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
     `coupon_id` BIGINT UNSIGNED NOT NULL COMMENT '优惠券ID',
@@ -353,7 +353,7 @@ CREATE TABLE `user_coupon` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='用户优惠券表';
 
 -- 促销活动表
-CREATE TABLE `promotion` (
+CREATE TABLE IF NOT EXISTS `promotion` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '活动ID',
     `name` VARCHAR(100) NOT NULL COMMENT '活动名称',
     `type` TINYINT NOT NULL COMMENT '活动类型: 1-满减, 2-折扣, 3-秒杀, 4-拼团',
@@ -372,7 +372,7 @@ CREATE TABLE `promotion` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='促销活动表';
 
 -- 积分表
-CREATE TABLE `points` (
+CREATE TABLE IF NOT EXISTS `points` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '积分记录ID',
     `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
     `type` TINYINT NOT NULL COMMENT '类型: 1-获得, 2-消费',
@@ -393,7 +393,7 @@ CREATE TABLE `points` (
 -- ============================================
 
 -- 评价表
-CREATE TABLE `review` (
+CREATE TABLE IF NOT EXISTS `review` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '评价ID',
     `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
     `order_id` BIGINT UNSIGNED NOT NULL COMMENT '订单ID',
@@ -419,7 +419,7 @@ CREATE TABLE `review` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='评价表';
 
 -- 评价回复表（用户对评价的回复）
-CREATE TABLE `review_reply` (
+CREATE TABLE IF NOT EXISTS `review_reply` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '回复ID',
     `review_id` BIGINT UNSIGNED NOT NULL COMMENT '评价ID',
     `user_id` BIGINT UNSIGNED NOT NULL COMMENT '回复用户ID',
@@ -438,7 +438,7 @@ CREATE TABLE `review_reply` (
 -- ============================================
 
 -- 物流信息表
-CREATE TABLE `logistics` (
+CREATE TABLE IF NOT EXISTS `logistics` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '物流ID',
     `order_id` BIGINT UNSIGNED NOT NULL COMMENT '订单ID',
     `order_no` VARCHAR(32) NOT NULL COMMENT '订单号',
@@ -468,7 +468,7 @@ CREATE TABLE `logistics` (
 -- 九、Outbox（事务消息表，用于异步同步到 ES 等）
 -- ============================================
 
-CREATE TABLE `outbox_event` (
+CREATE TABLE IF NOT EXISTS `outbox_event` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '事件ID',
     `aggregate_type` VARCHAR(32) NOT NULL COMMENT '聚合类型，如 product',
     `aggregate_id` VARCHAR(64) NOT NULL COMMENT '聚合ID，如 product_id',
@@ -491,7 +491,7 @@ CREATE TABLE `outbox_event` (
 -- ============================================
 
 -- 消息表
-CREATE TABLE `message` (
+CREATE TABLE IF NOT EXISTS `message` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '消息ID',
     `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
     `type` TINYINT NOT NULL COMMENT '消息类型: 1-系统通知, 2-订单消息, 3-营销消息, 4-物流消息',
@@ -514,7 +514,7 @@ CREATE TABLE `message` (
 -- ============================================
 
 -- 购物车表
-CREATE TABLE `cart` (
+CREATE TABLE IF NOT EXISTS `cart` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '购物车ID',
     `user_id` BIGINT UNSIGNED NOT NULL COMMENT '用户ID',
     `sku_id` BIGINT UNSIGNED NOT NULL COMMENT 'SKU ID',
@@ -532,7 +532,7 @@ CREATE TABLE `cart` (
 -- ============================================
 
 -- 品牌表
-CREATE TABLE `brand` (
+CREATE TABLE IF NOT EXISTS `brand` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '品牌ID',
     `name` VARCHAR(100) NOT NULL COMMENT '品牌名称',
     `logo` VARCHAR(255) DEFAULT NULL COMMENT '品牌Logo',
@@ -547,7 +547,7 @@ CREATE TABLE `brand` (
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci COMMENT='品牌表';
 
 -- 系统配置表
-CREATE TABLE `system_config` (
+CREATE TABLE IF NOT EXISTS `system_config` (
     `id` BIGINT UNSIGNED NOT NULL AUTO_INCREMENT COMMENT '配置ID',
     `config_key` VARCHAR(100) NOT NULL COMMENT '配置键',
     `config_value` TEXT COMMENT '配置值',
