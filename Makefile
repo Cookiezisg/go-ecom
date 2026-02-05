@@ -1,4 +1,8 @@
-.PHONY: build test lint clean proto proto-descriptor swagger api help start-all start-infra stop-infra seckill-init seckill-start seckill-stop seckill-full run-seckill run-order-consumer redis-cli redis-set-stock redis-get-stock redis-list-stocks seckill-check
+.PHONY: build build-service test lint clean proto proto-descriptor swagger api deps init help \
+        run-user run-product run-seckill run-order-consumer \
+        start-all start-services start-infra stop-infra \
+        seckill-init seckill-start seckill-stop seckill-full seckill-check \
+        redis-cli redis-set-stock redis-get-stock redis-list-stocks
 
 # 项目名称
 PROJECT_NAME := ecommerce-system
@@ -19,23 +23,16 @@ help: ## Show help
 
 build: ## Build all services
 	@echo "Building all services..."
-ifeq ($(OS),Windows_NT)
-	@for %%s in ($(SERVICES)) do ( \\
-		echo Building %%s... & \\
-		$(GOBUILD) -o bin/%%s.exe ./cmd/%%s \\
-	)
-else
-	@for service in $(SERVICES); do \\
-		echo "Building $$service..."; \\
-		$(GOBUILD) -o bin/$$service ./cmd/$$service; \\
+	@for service in $(SERVICES); do \
+		echo "Building $$service..."; \
+		$(GOBUILD) -o bin/$$service ./cmd/$$service; \
 	done
-endif
 	@echo "Build finished."
 
 build-service: ## Build single service (usage: make build-service SERVICE=user-service)
-	@if [ -z "$(SERVICE)" ]; then \\
-		echo "Error: please specify SERVICE, e.g. make build-service SERVICE=user-service"; \\
-		exit 1; \\
+	@if [ -z "$(SERVICE)" ]; then \
+		echo "Error: please specify SERVICE, e.g. make build-service SERVICE=user-service"; \
+		exit 1; \
 	fi
 	@echo "Building $(SERVICE)..."
 	$(GOBUILD) -o bin/$(SERVICE) ./cmd/$(SERVICE)
@@ -48,10 +45,10 @@ test: ## Run tests
 
 lint: ## Run linters
 	@echo "Running linters..."
-	@if command -v golangci-lint > /dev/null; then \\
-		golangci-lint run; \\
-	else \\
-		echo "Warning: golangci-lint not installed, skip lint step"; \\
+	@if command -v golangci-lint > /dev/null; then \
+		golangci-lint run; \
+	else \
+		echo "Warning: golangci-lint not installed, skip lint step"; \
 	fi
 
 clean: ## Clean build artifacts
@@ -61,55 +58,41 @@ clean: ## Clean build artifacts
 	@echo "Clean finished."
 
 proto: ## 生成 Protobuf 代码
-ifeq ($(OS),Windows_NT)
-	@powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\generate-proto.ps1
-else
-	@if command -v protoc > /dev/null; then \\
-		find api -name "*.proto" -exec protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative {} \\; ; \\
-	else \\
-		echo "错误: 未安装 protoc，请先安装 Protocol Buffers"; \\
-		exit 1; \\
+	@if command -v protoc > /dev/null; then \
+		find api -name "*.proto" -exec protoc --go_out=. --go_opt=paths=source_relative --go-grpc_out=. --go-grpc_opt=paths=source_relative {} \; ; \
+	else \
+		echo "错误: 未安装 protoc，请先安装 Protocol Buffers"; \
+		exit 1; \
 	fi
-endif
 
 proto-descriptor: ## 生成 Proto Descriptor 文件（用于 Gateway）
 	@echo "生成 Proto Descriptor 文件..."
-	@if [ -f scripts/generate-proto-descriptor.sh ]; then \\
-		chmod +x scripts/generate-proto-descriptor.sh && \\
-		./scripts/generate-proto-descriptor.sh; \\
-	else \\
-		echo "错误: 脚本文件不存在"; \\
-		exit 1; \\
+	@if [ -f scripts/generate-proto-descriptor.sh ]; then \
+		chmod +x scripts/generate-proto-descriptor.sh && \
+		./scripts/generate-proto-descriptor.sh; \
+	else \
+		echo "错误: 脚本文件不存在"; \
+		exit 1; \
 	fi
 	@echo "Proto Descriptor 文件生成完成！"
 
 swagger: ## 从 .proto 生成 OpenAPI (Swagger) 文档到 docs/swagger
-ifeq ($(OS),Windows_NT)
-	@echo "在 Windows 上生成 OpenAPI (Swagger) 文档..."
-	@if exist scripts\\generate-openapi.bat ( \\
-		scripts\\generate-openapi.bat \\
-	) else ( \\
-		echo 错误: scripts\\generate-openapi.bat 不存在; \\
-		exit 1; \\
-	)
-else
 	@echo "在 Unix/Linux/Mac 上生成 OpenAPI (Swagger) 文档..."
-	@if [ -f scripts/generate-openapi.sh ]; then \\
-		chmod +x scripts/generate-openapi.sh && \\
-		./scripts/generate-openapi.sh; \\
-	else \\
-		echo "错误: scripts/generate-openapi.sh 不存在"; \\
-		exit 1; \\
+	@if [ -f scripts/generate-openapi.sh ]; then \
+		chmod +x scripts/generate-openapi.sh && \
+		./scripts/generate-openapi.sh; \
+	else \
+		echo "错误: scripts/generate-openapi.sh 不存在"; \
+		exit 1; \
 	fi
-endif
 
 api: ## 使用 goctl 生成 API 代码 (需要先安装 goctl)
 	@echo "使用 goctl 生成 API 代码..."
-	@if command -v goctl > /dev/null; then \\
-		echo "goctl 已安装"; \\
-	else \\
-		echo "错误: 未安装 goctl，请运行: go install github.com/zeromicro/go-zero/tools/goctl@latest"; \\
-		exit 1; \\
+	@if command -v goctl > /dev/null; then \
+		echo "goctl 已安装"; \
+	else \
+		echo "错误: 未安装 goctl，请运行: go install github.com/zeromicro/go-zero/tools/goctl@latest"; \
+		exit 1; \
 	fi
 
 deps: ## 下载依赖
@@ -132,55 +115,28 @@ init: ## Initialize project structure (create directories)
 
 run-user: ## Run user service (dev)
 	@echo "Running user-service..."
-ifeq ($(OS),Windows_NT)
-	$(GOBUILD) -o bin/user-service.exe ./cmd/user-service
-	.\\bin\\user-service.exe
-else
 	$(GOBUILD) -o bin/user-service ./cmd/user-service && ./bin/user-service
-endif
 
 run-product: ## Run product service (dev)
 	@echo "Running product-service..."
-ifeq ($(OS),Windows_NT)
-	$(GOBUILD) -o bin/product-service.exe ./cmd/product-service
-	.\\bin\\product-service.exe
-else
 	$(GOBUILD) -o bin/product-service ./cmd/product-service && ./bin/product-service
-endif
 
 run-seckill: ## Run seckill service (dev)
 	@echo "Running seckill-service..."
-ifeq ($(OS),Windows_NT)
-	$(GOBUILD) -o bin/seckill-service.exe ./cmd/seckill-service
-	.\\bin\\seckill-service.exe -f configs/dev/seckill-config.yaml
-else
 	$(GOBUILD) -o bin/seckill-service ./cmd/seckill-service && ./bin/seckill-service -f configs/dev/seckill-config.yaml
-endif
 
 run-order-consumer: ## Run order service consumer (dev)
 	@echo "Running order-service-consumer..."
-ifeq ($(OS),Windows_NT)
-	$(GOBUILD) -o bin/order-service-consumer.exe ./cmd/order-service-consumer
-	.\\bin\\order-service-consumer.exe -f configs/dev/order-config.yaml
-else
 	$(GOBUILD) -o bin/order-service-consumer ./cmd/order-service-consumer && ./bin/order-service-consumer -f configs/dev/order-config.yaml
-endif
+
 
 start-all: ## Start all services (infrastructure + microservices)
 	@echo "Starting all services..."
-ifeq ($(OS),Windows_NT)
-	@powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\start-all.ps1
-else
 	@chmod +x scripts/start-all.sh && ./scripts/start-all.sh --gateway
-endif
 
 start-services: ## Start microservices only (skip infrastructure)
 	@echo "Starting microservices (skipping infrastructure)..."
-ifeq ($(OS),Windows_NT)
-	@powershell -NoProfile -ExecutionPolicy Bypass -File scripts\\start-all.ps1 --skip-infra
-else
 	@chmod +x scripts/start-all.sh && ./scripts/start-all.sh --gateway --skip-infra
-endif
 
 start-infra: ## Start infrastructure services (Docker Compose)
 	@echo "Starting infrastructure services..."
@@ -211,33 +167,33 @@ redis-cli: ## Connect to Redis CLI in Docker
 	@docker exec -it infra-redis redis-cli
 
 redis-set-stock: ## Set seckill stock in Redis (usage: make redis-set-stock SKU_ID=1 STOCK=100)
-	@if [ -z "$(SKU_ID)" ] || [ -z "$(STOCK)" ]; then \\
-		echo "错误: 请指定 SKU_ID 和 STOCK"; \\
-		echo "用法: make redis-set-stock SKU_ID=1 STOCK=100"; \\
-		exit 1; \\
+	@if [ -z "$(SKU_ID)" ] || [ -z "$(STOCK)" ]; then \
+		echo "错误: 请指定 SKU_ID 和 STOCK"; \
+		echo "用法: make redis-set-stock SKU_ID=1 STOCK=100"; \
+		exit 1; \
 	fi
 	@echo "设置秒杀库存: SKU_ID=$(SKU_ID), STOCK=$(STOCK)"
-	@docker exec infra-redis redis-cli SET "seckill:stock:$(SKU_ID)" "$(STOCK)" || \\
+	@docker exec infra-redis redis-cli SET "seckill:stock:$(SKU_ID)" "$(STOCK)" || \
 		(echo "错误: 无法连接到 Redis，请确保 Docker 容器正在运行: make start-infra" && exit 1)
 	@echo "✓ 库存设置成功"
 
 redis-get-stock: ## Get seckill stock from Redis (usage: make redis-get-stock SKU_ID=1)
-	@if [ -z "$(SKU_ID)" ]; then \\
-		echo "错误: 请指定 SKU_ID"; \\
-		echo "用法: make redis-get-stock SKU_ID=1"; \\
-		exit 1; \\
+	@if [ -z "$(SKU_ID)" ]; then \
+		echo "错误: 请指定 SKU_ID"; \
+		echo "用法: make redis-get-stock SKU_ID=1"; \
+		exit 1; \
 	fi
 	@echo "查询秒杀库存: SKU_ID=$(SKU_ID)"
-	@docker exec infra-redis redis-cli GET "seckill:stock:$(SKU_ID)" || \\
+	@docker exec infra-redis redis-cli GET "seckill:stock:$(SKU_ID)" || \
 		(echo "错误: 无法连接到 Redis，请确保 Docker 容器正在运行: make start-infra" && exit 1)
 
 redis-list-stocks: ## List all seckill stocks
 	@echo "查询所有秒杀库存..."
-	@docker exec infra-redis redis-cli KEYS "seckill:stock:*" | while read key; do \\
-		if [ -n "$$key" ]; then \\
-			value=$$(docker exec infra-redis redis-cli GET "$$key"); \\
-			echo "  $$key = $$value"; \\
-		fi \\
+	@docker exec infra-redis redis-cli KEYS "seckill:stock:*" | while read key; do \
+		if [ -n "$$key" ]; then \
+			value=$$(docker exec infra-redis redis-cli GET "$$key"); \
+			echo "  $$key = $$value"; \
+		fi \
 	done || echo "错误: 无法连接到 Redis，请确保 Docker 容器正在运行: make start-infra"
 
 seckill-check: ## Check seckill service status and dependencies
@@ -249,20 +205,15 @@ seckill-start: ## Start seckill service and consumer (requires infra running)
 	@echo "确保基础设施服务已启动（Redis、Kafka）: make start-infra"
 	@echo ""
 	@echo "启动秒杀服务（后台运行）..."
-ifeq ($(OS),Windows_NT)
-	@start /B $(GOBUILD) -o bin/seckill-service.exe ./cmd/seckill-service && start /B .\\bin\\seckill-service.exe -f configs/dev/seckill-config.yaml
-	@timeout /t 2 /nobreak >nul
-	@start /B $(GOBUILD) -o bin/order-service-consumer.exe ./cmd/order-service-consumer && start /B .\\bin\\order-service-consumer.exe -f configs/dev/order-config.yaml
-else
 	@mkdir -p logs
 	@$(GOBUILD) -o bin/seckill-service ./cmd/seckill-service
-	@nohup ./bin/seckill-service -f configs/dev/seckill-config.yaml > logs/seckill-service.log 2>&1 & \\
-	echo $$! > /tmp/seckill-service.pid && \\
+	@nohup ./bin/seckill-service -f configs/dev/seckill-config.yaml > logs/seckill-service.log 2>&1 & \
+	echo $$! > /tmp/seckill-service.pid && \
 	echo "秒杀服务已启动 (PID: $$(cat /tmp/seckill-service.pid))"
 	@sleep 2
 	@$(GOBUILD) -o bin/order-service-consumer ./cmd/order-service-consumer
-	@nohup ./bin/order-service-consumer -f configs/dev/order-config.yaml > logs/order-consumer.log 2>&1 & \\
-	echo $$! > /tmp/order-consumer.pid && \\
+	@nohup ./bin/order-service-consumer -f configs/dev/order-config.yaml > logs/order-consumer.log 2>&1 & \
+	echo $$! > /tmp/order-consumer.pid && \
 	echo "订单服务消费者已启动 (PID: $$(cat /tmp/order-consumer.pid))"
 	@echo ""
 	@echo "服务已启动，日志文件："
@@ -270,25 +221,20 @@ else
 	@echo "  - logs/order-consumer.log"
 	@echo ""
 	@echo "停止服务：make seckill-stop"
-endif
+
 
 seckill-stop: ## Stop seckill service and consumer
 	@echo "停止秒杀服务..."
-ifeq ($(OS),Windows_NT)
-	@taskkill /F /IM seckill-service.exe 2>nul || echo "秒杀服务未运行"
-	@taskkill /F /IM order-service-consumer.exe 2>nul || echo "订单消费者未运行"
-else
-	@if [ -f /tmp/seckill-service.pid ]; then \\
-		kill $$(cat /tmp/seckill-service.pid) 2>/dev/null && rm /tmp/seckill-service.pid || echo "秒杀服务未运行"; \\
-	else \\
-		pkill -f seckill-service || echo "秒杀服务未运行"; \\
+	@if [ -f /tmp/seckill-service.pid ]; then \
+		kill $$(cat /tmp/seckill-service.pid) 2>/dev/null && rm /tmp/seckill-service.pid || echo "秒杀服务未运行"; \
+	else \
+		pkill -f seckill-service || echo "秒杀服务未运行"; \
 	fi
-	@if [ -f /tmp/order-consumer.pid ]; then \\
-		kill $$(cat /tmp/order-consumer.pid) 2>/dev/null && rm /tmp/order-consumer.pid || echo "订单消费者未运行"; \\
-	else \\
-		pkill -f order-service-consumer || echo "订单消费者未运行"; \\
+	@if [ -f /tmp/order-consumer.pid ]; then \
+		kill $$(cat /tmp/order-consumer.pid) 2>/dev/null && rm /tmp/order-consumer.pid || echo "订单消费者未运行"; \
+	else \
+		pkill -f order-service-consumer || echo "订单消费者未运行"; \
 	fi
-endif
 	@echo "秒杀服务已停止"
 
 seckill-full: start-infra seckill-init seckill-start ## Full seckill setup (infra + init + start)
