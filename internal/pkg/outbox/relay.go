@@ -7,7 +7,7 @@ import (
 
 	"github.com/zeromicro/go-zero/core/logx"
 
-	"ecommerce_system/internal/pkg/mq"
+	"ecommerce-system/internal/pkg/mq"
 )
 
 type RelayConfig struct {
