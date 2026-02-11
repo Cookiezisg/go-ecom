@@ -4,7 +4,7 @@ go 1.25.5
 
 require (
 	github.com/IBM/sarama v1.43.1
-	github.com/oklog/ulid/v2 v2.1.1
+	github.com/elastic/go-elasticsearch/v8 v8.19.3
 	github.com/redis/go-redis/v9 v9.17.2
 	github.com/zeromicro/go-zero v1.9.4
 	google.golang.org/grpc v1.78.0
@@ -27,6 +27,7 @@ require (
 	github.com/eapache/go-resiliency v1.6.0 // indirect
 	github.com/eapache/go-xerial-snappy v0.0.0-20230731223053-c322873962e3 // indirect
 	github.com/eapache/queue v1.1.0 // indirect
+	github.com/elastic/elastic-transport-go/v8 v8.8.0 // indirect
 	github.com/emicklei/go-restful/v3 v3.11.0 // indirect
 	github.com/envoyproxy/go-control-plane/envoy v1.35.0 // indirect
 	github.com/envoyproxy/protoc-gen-validate v1.2.1 // indirect
