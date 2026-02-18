@@ -124,6 +124,22 @@ const LuaScriptSeckill = `
 `
 
 // ExecuteLuaScript 执行Lua脚本
-func ExecuteLuaScript(ctx context.Context, client *redis.Client, script string, keys []string, args ...interface{}) (interface{}, error) {
-	return client..Result()
+//
+//	func ExecuteLuaScript(ctx context.Context, client *redis.Client, script string, keys []string, args ...interface{}) (interface{}, error) {
+//		return client..Result()
+//	}
+func ExecuteLuaScript(
+	ctx context.Context,
+	client *redis.Client,
+	script string,
+	keys []string,
+	args ...interface{},
+) (interface{}, error) {
+
+	return client.Eval(
+		ctx,
+		script,
+		keys,
+		args...,
+	).Result()
 }
