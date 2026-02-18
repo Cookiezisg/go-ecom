@@ -39,7 +39,6 @@ func (dl *DistributedLock) Lock(ctx context.Context) (bool, error) {
 
 // Unlock 释放锁（使用Lua脚本保证原子性）
 func (dl *DistributedLock) Unlock(ctx context.Context) error {
-	// Lua脚本：只有当锁的值匹配时才删除
 	script := `
 		if redis.call("get", KEYS[1]) == ARGV[1] then
 			return redis.call("del", KEYS[1])
@@ -47,7 +46,15 @@ func (dl *DistributedLock) Unlock(ctx context.Context) error {
 			return 0
 		end
 	`
-	return dl.client..Err()
+
+	_, err := dl.client.Eval(
+		ctx,
+		script,
+		[]string{dl.key}, // KEYS[1]
+		dl.value,         // ARGV[1]
+	).Result()
+
+	return err
 }
 
 // TryLock 尝试获取锁，带重试
