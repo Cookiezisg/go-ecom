@@ -18,10 +18,10 @@ import (
 
 // Config Jaeger配置
 type Config struct {
-	ServiceName string   `json:"required"`
-	Endpoint    string   `json:"required"` // Jaeger endpoint (e.g., http://localhost:14268/api/traces)
-	Environment string   `json:"default=development"`
-	Tags        []string `json:"optional"` // 额外标签 (key:value格式)
+	ServiceName string   `json:",required"`
+	Endpoint    string   `json:",required"` // Jaeger endpoint (e.g., http://localhost:14268/api/traces)
+	Environment string   `json:",default=development"`
+	Tags        []string `json:",optional"` // 额外标签 (key:value格式)
 }
 
 // TracerProvider Trace提供者
