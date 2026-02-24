@@ -2,7 +2,7 @@ package file
 
 import "github.com/zeromicro/go-zero/zrpc"
 
-type config struct {
+type Config struct {
 	zrpc.RpcClientConf
 	Storage StorageConfig
 }

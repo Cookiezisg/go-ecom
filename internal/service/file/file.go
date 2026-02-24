@@ -1,6 +1,22 @@
 package file
 
+import (
+	"ecommerce-system/internal/service/file/repository"
+)
+
+// ServiceContext 服务上下文
 type ServiceContext struct {
-	Config   config
-	FileRepo repository.File
+	Config   Config
+	FileRepo repository.FileRepository
+}
+
+// NewServiceContext 创建服务上下文
+func NewServiceContext(c Config) *ServiceContext {
+	ctx := &ServiceContext{
+		Config: c,
+	}
+
+	ctx.FileRepo = repository.NewFileRepository(c.Storage)
+
+	return ctx
 }
