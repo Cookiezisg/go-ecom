@@ -2,24 +2,33 @@ package repository
 
 import (
 	"context"
-	"ecommerce-system/internal/pkg/cache"
-	"ecommerce-system/internal/service/cart/model"
 	"encoding/json"
 	"fmt"
 	"time"
+
+	"ecommerce_system/internal/service/cart/model"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 )
 
+// CartRepository 购物车仓库接口
 type CartRepository interface {
+	// GetByUserID 获取用户购物车（从Redis）
 	GetByUserID(ctx context.Context, userID uint64) ([]*model.Cart, error)
+	// AddItem 添加商品到购物车
 	AddItem(ctx context.Context, cart *model.Cart) error
+	// UpdateQuantity 更新商品数量
 	UpdateQuantity(ctx context.Context, userID, skuID uint64, quantity int) error
-	RemoveItem(ctx context.Context, userID, skuIDs []uint64) error
+	// RemoveItem 删除商品
+	RemoveItem(ctx context.Context, userID uint64, skuIDs []uint64) error
+	// ClearCart 清空购物车
 	ClearCart(ctx context.Context, userID uint64) error
-	SelectItem(ctx context.Context, userID, skuIDs []uint64, isSelected int8) error
+	// SelectItem 选择/取消选择商品
+	SelectItem(ctx context.Context, userID, skuID uint64, isSelected int8) error
+	// BatchSelect 批量选择/取消选择
 	BatchSelect(ctx context.Context, userID uint64, skuIDs []uint64, isSelected int8) error
+	// SyncToDB 同步到数据库（持久化）
 	SyncToDB(ctx context.Context, userID uint64) error
 }
 
@@ -28,6 +37,7 @@ type cartRepository struct {
 	redis *redis.Client
 }
 
+// NewCartRepository 创建购物车仓库
 func NewCartRepository(db *gorm.DB, redis *redis.Client) CartRepository {
 	return &cartRepository{
 		db:    db,
@@ -35,14 +45,16 @@ func NewCartRepository(db *gorm.DB, redis *redis.Client) CartRepository {
 	}
 }
 
-// 辅助函数 拿到redis的key
+// getCartKey 获取购物车Redis key
 func (r *cartRepository) getCartKey(userID uint64) string {
-	return cache.BuildKey(cache.KeyPrefixCart, "user:", userID)
+	return fmt.Sprintf("cart:user:%d", userID)
 }
 
+// GetByUserID 获取用户购物车（从Redis）
 func (r *cartRepository) GetByUserID(ctx context.Context, userID uint64) ([]*model.Cart, error) {
 	key := r.getCartKey(userID)
 
+	// 从Redis获取
 	items, err := r.redis.HGetAll(ctx, key).Result()
 	if err != nil {
 		return nil, err
@@ -53,22 +65,23 @@ func (r *cartRepository) GetByUserID(ctx context.Context, userID uint64) ([]*mod
 	}
 
 	carts := make([]*model.Cart, 0, len(items))
-
 	for _, itemJSON := range items {
-		var item model.Cart
-		if err := json.Unmarshal([]byte(itemJSON), &item); err != nil {
+		var cart model.Cart
+		if err := json.Unmarshal([]byte(itemJSON), &cart); err != nil {
 			continue
 		}
-		carts = append(carts, &item)
+		carts = append(carts, &cart)
 	}
 
 	return carts, nil
 }
 
+// AddItem 添加商品到购物车
 func (r *cartRepository) AddItem(ctx context.Context, cart *model.Cart) error {
 	key := r.getCartKey(cart.UserID)
-	itemKey := fmt.Sprints("%d", cart.SkuID)
+	itemKey := fmt.Sprintf("%d", cart.SkuID)
 
+	// 检查是否已存在
 	exists, err := r.redis.HExists(ctx, key, itemKey).Result()
 	if err != nil {
 		return err
@@ -77,46 +90,145 @@ func (r *cartRepository) AddItem(ctx context.Context, cart *model.Cart) error {
 	if exists {
 		// 更新数量
 		var existingCart model.Cart
-		itemJson, _ := r.redis.HGet(ctx, key, itemKey).Result()
-		json.Unmarshal([]byte(itemJson), &existingCart)
+		itemJSON, _ := r.redis.HGet(ctx, key, itemKey).Result()
+		json.Unmarshal([]byte(itemJSON), &existingCart)
 		existingCart.Quantity += cart.Quantity
 		existingCart.UpdatedAt = time.Now()
 
 		itemJSONBytes, _ := json.Marshal(existingCart)
-		err := r.redis.HSet(ctx, key, itemKey, itemJSONBytes).Err()
+		err = r.redis.HSet(ctx, key, itemKey, string(itemJSONBytes)).Err()
 		if err != nil {
 			return err
 		}
-
-		return r.redis.Expire(ctx, key, 20*24*time.Hour).Err()
+		// 更新过期时间
+		return r.redis.Expire(ctx, key, 30*24*time.Hour).Err()
 	}
 
-	// 如果是新增商品的话
+	// 新增
 	cart.CreatedAt = time.Now()
 	cart.UpdatedAt = time.Now()
 	itemJSONBytes, _ := json.Marshal(cart)
-	err = r.redis.HSet(ctx, key, itemKey, itemJSONBytes).Err()
+
+	// 保存到 Redis
+	err = r.redis.HSet(ctx, key, itemKey, string(itemJSONBytes)).Err()
 	if err != nil {
 		return err
 	}
 
-	return r.redis.Expire(ctx, key, 20*24*time.Hour).Err()
+	// 设置过期时间30天（对整个 hash 设置过期时间）
+	return r.redis.Expire(ctx, key, 30*24*time.Hour).Err()
 }
 
+// UpdateQuantity 更新商品数量
 func (r *cartRepository) UpdateQuantity(ctx context.Context, userID, skuID uint64, quantity int) error {
+	key := r.getCartKey(userID)
+	itemKey := fmt.Sprintf("%d", skuID)
+
+	itemJSON, err := r.redis.HGet(ctx, key, itemKey).Result()
+	if err != nil {
+		return err
+	}
+
+	var cart model.Cart
+	if err := json.Unmarshal([]byte(itemJSON), &cart); err != nil {
+		return err
+	}
+
+	cart.Quantity = quantity
+	cart.UpdatedAt = time.Now()
+
+	itemJSONBytes, _ := json.Marshal(cart)
+	return r.redis.HSet(ctx, key, itemKey, string(itemJSONBytes)).Err()
 }
 
-func (r *cartRepository) RemoveItem(ctx context.Context, userID, skuIDs []uint64) error {
+// RemoveItem 删除商品
+func (r *cartRepository) RemoveItem(ctx context.Context, userID uint64, skuIDs []uint64) error {
+	key := r.getCartKey(userID)
+
+	itemKeys := make([]string, 0, len(skuIDs))
+	for _, skuID := range skuIDs {
+		itemKeys = append(itemKeys, fmt.Sprintf("%d", skuID))
+	}
+
+	return r.redis.HDel(ctx, key, itemKeys...).Err()
 }
 
+// ClearCart 清空购物车
 func (r *cartRepository) ClearCart(ctx context.Context, userID uint64) error {
+	key := r.getCartKey(userID)
+	return r.redis.Del(ctx, key).Err()
 }
 
-func (r *cartRepository) SelectItem(ctx context.Context, userID, skuIDs []uint64, isSelected int8) error {
+// SelectItem 选择/取消选择商品
+func (r *cartRepository) SelectItem(ctx context.Context, userID, skuID uint64, isSelected int8) error {
+	key := r.getCartKey(userID)
+	itemKey := fmt.Sprintf("%d", skuID)
+
+	itemJSON, err := r.redis.HGet(ctx, key, itemKey).Result()
+	if err != nil {
+		return err
+	}
+
+	var cart model.Cart
+	if err := json.Unmarshal([]byte(itemJSON), &cart); err != nil {
+		return err
+	}
+
+	cart.IsSelected = isSelected
+	cart.UpdatedAt = time.Now()
+
+	itemJSONBytes, _ := json.Marshal(cart)
+	return r.redis.HSet(ctx, key, itemKey, string(itemJSONBytes)).Err()
 }
 
+// BatchSelect 批量选择/取消选择
 func (r *cartRepository) BatchSelect(ctx context.Context, userID uint64, skuIDs []uint64, isSelected int8) error {
+	key := r.getCartKey(userID)
+
+	for _, skuID := range skuIDs {
+		itemKey := fmt.Sprintf("%d", skuID)
+		itemJSON, err := r.redis.HGet(ctx, key, itemKey).Result()
+		if err != nil {
+			continue
+		}
+
+		var cart model.Cart
+		if err := json.Unmarshal([]byte(itemJSON), &cart); err != nil {
+			continue
+		}
+
+		cart.IsSelected = isSelected
+		cart.UpdatedAt = time.Now()
+
+		itemJSONBytes, _ := json.Marshal(cart)
+		r.redis.HSet(ctx, key, itemKey, string(itemJSONBytes))
+	}
+
+	return nil
 }
 
+// SyncToDB 同步到数据库（持久化）
 func (r *cartRepository) SyncToDB(ctx context.Context, userID uint64) error {
+	carts, err := r.GetByUserID(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	// 批量保存到数据库
+	for _, cart := range carts {
+		var existingCart model.Cart
+		err := r.db.WithContext(ctx).
+			Where("user_id = ? AND sku_id = ?", cart.UserID, cart.SkuID).
+			First(&existingCart).Error
+
+		if err == gorm.ErrRecordNotFound {
+			// 新增
+			r.db.WithContext(ctx).Create(cart)
+		} else {
+			// 更新
+			r.db.WithContext(ctx).Model(&existingCart).Updates(cart)
+		}
+	}
+
+	return nil
 }

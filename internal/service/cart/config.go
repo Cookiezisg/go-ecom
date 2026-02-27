@@ -26,7 +26,7 @@ type RedisConfig struct {
 	Host         string
 	Port         int
 	Password     string
-	DDatabase    int
+	Database     int
 	PoolSize     int
 	MinIdleConns int
 }
