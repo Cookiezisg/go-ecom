@@ -3,9 +3,9 @@ package service
 import (
 	"context"
 
-	apperrors "ecommerce_system/internal/pkg/errors"
-	"ecommerce_system/internal/service/cart/model"
-	"ecommerce_system/internal/service/cart/repository"
+	apperrors "ecommerce-system/internal/pkg/errors"
+	"ecommerce-system/internal/service/cart/model"
+	"ecommerce-system/internal/service/cart/repository"
 )
 
 // CartLogic 购物车业务逻辑
