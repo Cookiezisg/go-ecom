@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"ecommerce_system/internal/service/cart/model"
+	"ecommerce-system/internal/service/cart/model"
 
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
