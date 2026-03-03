@@ -2,24 +2,26 @@ package cart
 
 import (
 	"context"
-	v1 "ecommerce-system/api/cart/v1"
-	apperrors "ecommerce-system/internal/pkg/errors"
-	"ecommerce-system/internal/service/cart/model"
-	"ecommerce-system/internal/service/cart/service"
 	"time"
 
+	v1 "ecommerce-system/api/cart/v1"
+	apperrors "ecommerce-system/internal/pkg/errors"
 	"ecommerce-system/internal/pkg/utils"
+	"ecommerce-system/internal/service/cart/model"
+	"ecommerce-system/internal/service/cart/service"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
 )
 
+// CartService 实现 gRPC 服务接口
 type CartService struct {
 	v1.UnimplementedCartServiceServer
 	svcCtx *ServiceContext
 	logic  *service.CartLogic
 }
 
+// NewCartService 创建购物车服务
 func NewCartService(svcCtx *ServiceContext) *CartService {
 	logic := service.NewCartLogic(svcCtx.CartRepo)
 
@@ -29,19 +31,23 @@ func NewCartService(svcCtx *ServiceContext) *CartService {
 	}
 }
 
+// GetCart 获取购物车
 func (s *CartService) GetCart(ctx context.Context, req *v1.GetCartRequest) (*v1.GetCartResponse, error) {
+	// 从 context 中获取 user_id（由 JWT 中间件设置）
 	userID, ok := utils.GetUserID(ctx)
 	if !ok {
+		// 如果 context 中没有，尝试从请求参数获取（兼容性）
 		if req.UserId > 0 {
 			userID = uint64(req.UserId)
 		} else {
-			return nil, status.Error(codes.Unauthenticated, "当前没有用户登陆")
+			return nil, status.Error(codes.Unauthenticated, "未授权，请先登录")
 		}
 	}
 
 	getReq := &service.GetCartRequest{
 		UserID: userID,
 	}
+
 	resp, err := s.logic.GetCart(ctx, getReq)
 	if err != nil {
 		return nil, convertError(err)
@@ -52,6 +58,8 @@ func (s *CartService) GetCart(ctx context.Context, req *v1.GetCartRequest) (*v1.
 		items = append(items, convertCartItemToProto(item))
 	}
 
+	// 返回格式需要匹配前端期望的结构
+	// 注意：proto 定义中 data 是 repeated CartItem，直接返回数组
 	return &v1.GetCartResponse{
 		Code:    0,
 		Message: "成功",
@@ -59,13 +67,16 @@ func (s *CartService) GetCart(ctx context.Context, req *v1.GetCartRequest) (*v1.
 	}, nil
 }
 
+// AddItem 添加商品到购物车
 func (s *CartService) AddItem(ctx context.Context, req *v1.AddItemRequest) (*v1.AddItemResponse, error) {
+	// 从 context 中获取 user_id（由 JWT 中间件设置）
 	userID, ok := utils.GetUserID(ctx)
 	if !ok {
+		// 如果 context 中没有，尝试从请求参数获取（兼容性）
 		if req.UserId > 0 {
 			userID = uint64(req.UserId)
 		} else {
-			return nil, status.Error(codes.Unauthenticated, "当前没有用户登陆")
+			return nil, status.Error(codes.Unauthenticated, "未授权，请先登录")
 		}
 	}
 
@@ -82,34 +93,131 @@ func (s *CartService) AddItem(ctx context.Context, req *v1.AddItemRequest) (*v1.
 
 	return &v1.AddItemResponse{
 		Code:    0,
-		Message: "成功",
+		Message: "添加成功",
 		Data:    convertCartItemToProto(resp.Cart),
 	}, nil
 }
 
-func convertCartItemToProto(item *model.Cart) *v1.CartItem {
-	if item == nil {
-		return nil
+// UpdateQuantity 更新商品数量
+func (s *CartService) UpdateQuantity(ctx context.Context, req *v1.UpdateQuantityRequest) (*v1.UpdateQuantityResponse, error) {
+	// 从 context 中获取 user_id（由 JWT 中间件设置）
+	userID, ok := utils.GetUserID(ctx)
+	if !ok {
+		if req.UserId > 0 {
+			userID = uint64(req.UserId)
+		} else {
+			return nil, status.Error(codes.Unauthenticated, "未授权，请先登录")
+		}
 	}
 
-	createdAt := ""
-	updatedAt := ""
-	if !item.CreatedAt.IsZero() {
-		createdAt = item.CreatedAt.Format(time.RFC3339)
-	}
-	if !item.UpdatedAt.IsZero() {
-		updatedAt = item.UpdatedAt.Format(time.RFC3339)
+	updateReq := &service.UpdateQuantityRequest{
+		UserID:   userID,
+		SkuID:    uint64(req.SkuId),
+		Quantity: int(req.Quantity),
 	}
 
-	return &v1.CartItem{
-		Id:         int64(item.ID),
-		UserId:     int64(item.UserID),
-		SkuId:      int64(item.SkuID),
-		Quantity:   int32(item.Quantity),
-		IsSelected: int32(item.IsSelected),
-		CreatedAt:  createdAt,
-		UpdatedAt:  updatedAt,
+	err := s.logic.UpdateQuantity(ctx, updateReq)
+	if err != nil {
+		return nil, convertError(err)
 	}
+
+	return &v1.UpdateQuantityResponse{
+		Code:    0,
+		Message: "更新成功",
+	}, nil
+}
+
+// RemoveItem 删除商品
+func (s *CartService) RemoveItem(ctx context.Context, req *v1.RemoveItemRequest) (*v1.RemoveItemResponse, error) {
+	// 从 context 中获取 user_id（由 JWT 中间件设置）
+	userID, ok := utils.GetUserID(ctx)
+	if !ok {
+		if req.UserId > 0 {
+			userID = uint64(req.UserId)
+		} else {
+			return nil, status.Error(codes.Unauthenticated, "未授权，请先登录")
+		}
+	}
+
+	skuIDs := make([]uint64, 0, len(req.SkuIds))
+	for _, id := range req.SkuIds {
+		skuIDs = append(skuIDs, uint64(id))
+	}
+
+	removeReq := &service.RemoveItemRequest{
+		UserID: userID,
+		SkuIDs: skuIDs,
+	}
+
+	err := s.logic.RemoveItem(ctx, removeReq)
+	if err != nil {
+		return nil, convertError(err)
+	}
+
+	return &v1.RemoveItemResponse{
+		Code:    0,
+		Message: "删除成功",
+	}, nil
+}
+
+// ClearCart 清空购物车
+func (s *CartService) ClearCart(ctx context.Context, req *v1.ClearCartRequest) (*v1.ClearCartResponse, error) {
+	clearReq := &service.ClearCartRequest{
+		UserID: uint64(req.UserId),
+	}
+
+	err := s.logic.ClearCart(ctx, clearReq)
+	if err != nil {
+		return nil, convertError(err)
+	}
+
+	return &v1.ClearCartResponse{
+		Code:    0,
+		Message: "清空成功",
+	}, nil
+}
+
+// SelectItem 选择/取消选择商品
+func (s *CartService) SelectItem(ctx context.Context, req *v1.SelectItemRequest) (*v1.SelectItemResponse, error) {
+	selectReq := &service.SelectItemRequest{
+		UserID:     uint64(req.UserId),
+		SkuID:      uint64(req.SkuId),
+		IsSelected: int8(req.IsSelected),
+	}
+
+	err := s.logic.SelectItem(ctx, selectReq)
+	if err != nil {
+		return nil, convertError(err)
+	}
+
+	return &v1.SelectItemResponse{
+		Code:    0,
+		Message: "操作成功",
+	}, nil
+}
+
+// BatchSelect 批量选择/取消选择
+func (s *CartService) BatchSelect(ctx context.Context, req *v1.BatchSelectRequest) (*v1.BatchSelectResponse, error) {
+	skuIDs := make([]uint64, 0, len(req.SkuIds))
+	for _, id := range req.SkuIds {
+		skuIDs = append(skuIDs, uint64(id))
+	}
+
+	batchReq := &service.BatchSelectRequest{
+		UserID:     uint64(req.UserId),
+		SkuIDs:     skuIDs,
+		IsSelected: int8(req.IsSelected),
+	}
+
+	err := s.logic.BatchSelect(ctx, batchReq)
+	if err != nil {
+		return nil, convertError(err)
+	}
+
+	return &v1.BatchSelectResponse{
+		Code:    0,
+		Message: "操作成功",
+	}, nil
 }
 
 // convertError 转换业务错误为 gRPC 错误
@@ -118,6 +226,7 @@ func convertError(err error) error {
 		return nil
 	}
 
+	// 检查是否是 BusinessError
 	if bizErr, ok := err.(*apperrors.BusinessError); ok {
 		var grpcCode codes.Code
 		switch bizErr.Code {
@@ -136,4 +245,29 @@ func convertError(err error) error {
 	}
 
 	return status.Error(codes.Internal, err.Error())
+}
+
+// convertCartItemToProto 转换购物车商品为 Protobuf 消息
+func convertCartItemToProto(item *model.Cart) *v1.CartItem {
+	if item == nil {
+		return nil
+	}
+
+	return &v1.CartItem{
+		Id:         int64(item.ID),
+		UserId:     int64(item.UserID),
+		SkuId:      int64(item.SkuID),
+		Quantity:   int32(item.Quantity),
+		IsSelected: int32(item.IsSelected),
+		CreatedAt:  formatTime(&item.CreatedAt),
+		UpdatedAt:  formatTime(&item.UpdatedAt),
+	}
+}
+
+// formatTime 格式化时间为字符串
+func formatTime(t *time.Time) string {
+	if t == nil {
+		return ""
+	}
+	return t.Format(time.RFC3339)
 }
