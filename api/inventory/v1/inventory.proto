@@ -3,3 +3,23 @@ syntax = "proto3";
 package inventory.v1;
 
 option go_package = "api/inventory/v1;v1";
+
+// 库存服务
+service InventoryService {
+  // 获取库存信息
+  rpc GetInventory(GetInventoryRequest) returns (GetInventoryResponse);
+  // 批量获取库存
+  rpc BatchGetInventory(BatchGetInventoryRequest) returns (BatchGetInventoryResponse);
+  // 锁定库存（预占库存）
+  rpc LockStock(LockStockRequest) returns (LockStockResponse);
+  // 扣减库存
+  rpc DeductStock(DeductStockRequest) returns (DeductStockResponse);
+  // 解锁库存
+  rpc UnlockStock(UnlockStockRequest) returns (UnlockStockResponse);
+  // 回退库存
+  rpc RollbackStock(RollbackStockRequest) returns (RollbackStockResponse);
+  // 入库
+  rpc StockIn(StockInRequest) returns (StockInResponse);
+  // 获取库存流水
+  rpc GetInventoryLog(GetInventoryLogRequest) returns (GetInventoryLogResponse);
+}
