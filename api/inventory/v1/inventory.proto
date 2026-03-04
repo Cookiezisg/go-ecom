@@ -1,0 +1,5 @@
+syntax = "proto3";
+
+package inventory.v1;
+
+option go_package = "api/inventory/v1;v1";
