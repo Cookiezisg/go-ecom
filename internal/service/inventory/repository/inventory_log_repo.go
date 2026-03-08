@@ -2,7 +2,7 @@ package repository
 
 import (
 	"context"
-	"ecommerce_system/internal/service/inventory/model"
+	"ecommerce-system/internal/service/inventory/model"
 
 	"gorm.io/gorm"
 )
