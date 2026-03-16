@@ -3,6 +3,7 @@ package service
 import (
 	"context"
 	"errors"
+	"fmt"
 	"math"
 	"strings"
 	"time"
@@ -329,4 +330,159 @@ func (l *ProductLogic) collectDescendantCategoryIDs(ctx context.Context, rootID 
 		}
 	}
 	return out, nil
+}
+
+type GetSkuRequest struct {
+	ID      uint64
+	SkuCode string
+}
+
+type GetSkuResponse struct {
+	Sku *model.Sku
+}
+
+func (l *ProductLogic) GetSku(ctx context.Context, req *GetSkuRequest) (*GetSkuResponse, error) {
+
+	if l.skuRepo == nil {
+		return nil, apperrors.NewInternalError("数据库没有初始化")
+	}
+
+	var skuID uint64
+	var err error
+
+	if req.ID > 0 {
+		skuID = req.ID
+	} else if req.SkuCode != "" {
+		sku, err := l.skuRepo.GetBySkuCode(ctx, req.SkuCode)
+		if err != nil {
+			return nil, apperrors.NewInternalError("根据SKU编码查询SKU失败: " + err.Error())
+		}
+		if sku == nil {
+			return nil, apperrors.NewError(apperrors.CodeSkuNotFound, "SKU不存在")
+		}
+		skuID = sku.ID
+	} else {
+		return nil, apperrors.NewInvalidParamError("SKU ID或SKU编码不能为空")
+	}
+
+	// 走一下缓存试试看
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixSkuInfo, skuID)
+		var cachedResp GetSkuResponse
+		if err := l.cache.GetJSON(ctx, cacheKey, &cachedResp); err == nil {
+			return &cachedResp, nil
+		}
+	}
+
+	sku, err := l.skuRepo.GetByID(ctx, skuID)
+	if err != nil {
+		return nil, apperrors.NewInternalError("查询SKU失败: " + err.Error())
+	}
+	if sku == nil {
+		return nil, apperrors.NewError(apperrors.CodeSkuNotFound, "SKU不存在")
+	}
+
+	resp := &GetSkuResponse{
+		Sku: sku,
+	}
+
+	// 写缓存 1小时
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixSkuInfo, skuID)
+		_ = l.cache.Set(ctx, cacheKey, resp, 1*time.Hour)
+	}
+
+	return resp, nil
+}
+
+type ListSkusRequest struct {
+	ProductID uint64
+	Status    int8
+	Page      int
+	PageSize  int
+}
+
+type ListSkusResponse struct {
+	Skus       []*model.Sku
+	Page       int
+	PageSize   int
+	Total      int64
+	TotalPages int
+}
+
+func (l *ProductLogic) ListSkus(ctx context.Context, req *ListSkusRequest) (*ListSkusResponse, error) {
+
+	if l.skuRepo == nil {
+		return nil, apperrors.NewInternalError("数据库没有初始化")
+	}
+
+	page := req.Page
+	if page <= 0 {
+		page = 1
+	}
+	pageSize := req.PageSize
+	if pageSize <= 0 {
+		pageSize = 20
+	}
+
+	listReq := &repository.ListSkusRequest{
+		ProductID: req.ProductID,
+		Status:    req.Status,
+		Page:      page,
+		PageSize:  pageSize,
+	}
+
+	skus, total, err := l.skuRepo.List(ctx, listReq)
+	if err != nil {
+		return nil, apperrors.NewInternalError("查询SKU列表失败: " + err.Error())
+	}
+
+	if req.ProductID > 0 && req.Status == 1 && total == 0 {
+		existing, err := l.skuRepo.GetByProductID(ctx, req.ProductID)
+		if err == nil && len(existing) == 0 && l.productRepo != nil {
+			product, err := l.productRepo.GetByID(ctx, req.ProductID)
+			if err == nil && product != nil {
+				defaultSku := &model.Sku{
+					ProductID: req.ProductID,
+					SkuCode:   fmt.Sprintf("SKU%d-DEFAULT", req.ProductID),
+					Name:      product.Name,
+					Specs:     "{}",
+					Price:     product.Price,
+					Stock:     product.Stock,
+					Status:    1,
+				}
+				if product.OriginalPrice != nil {
+					defaultSku.OriginalPrice = product.OriginalPrice
+				}
+				// 优先用本地主图
+				if product.LocalMainImage != "" {
+					defaultSku.Image = product.LocalMainImage
+				} else {
+					defaultSku.Image = product.MainImage
+				}
+
+				_ = l.skuRepo.Create(ctx, defaultSku) // 忽略重复创建错误（并发情况下）
+
+				// 清理商品详情缓存，避免 SKU 列表和详情不一致
+				if l.cache != nil {
+					_ = l.cache.Delete(ctx, cache.BuildKey(cache.KeyPrefixProductDetail, req.ProductID))
+				}
+
+				// 重新查询一次（确保拿到 ID / 最新数据）
+				skus, total, _ = l.skuRepo.List(ctx, listReq)
+			}
+		}
+	}
+	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
+	if totalPages == 0 && total > 0 {
+		totalPages = 1
+	}
+
+	return &ListSkusResponse{
+		Skus:       skus,
+		Page:       page,
+		PageSize:   pageSize,
+		Total:      total,
+		TotalPages: totalPages,
+	}, nil
 }
