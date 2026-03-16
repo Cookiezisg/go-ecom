@@ -1,6 +1,9 @@
 package cache
 
-import "fmt"
+import (
+	"fmt"
+	"strings"
+)
 
 // 缓存键前缀定义
 const (
@@ -53,11 +56,14 @@ const (
 	KeyPrefixLock = "lock:" // lock:{resource}:{id}
 )
 
-// BuildKey 构建缓存键
+// BuildKey 构建缓存键（带分隔符）
 func BuildKey(prefix string, parts ...interface{}) string {
-	key := prefix
+	var b strings.Builder
+	b.WriteString(prefix)
+
 	for _, part := range parts {
-		key += fmt.Sprintf("%v", part)
+		b.WriteString(":") // 分隔符
+		b.WriteString(fmt.Sprintf("%v", part))
 	}
-	return key
+	return b.String()
 }
