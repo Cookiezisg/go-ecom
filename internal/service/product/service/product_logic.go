@@ -783,3 +783,314 @@ func (l *ProductLogic) CreateSku(ctx context.Context, req *CreateSkuRequest) (*C
 		Sku: sku,
 	}, nil
 }
+
+// UpdateSkuRequest 更新SKU请求
+type UpdateSkuRequest struct {
+	ID            uint64
+	SkuCode       string
+	Name          string
+	Specs         map[string]string
+	Price         float64
+	OriginalPrice *float64
+	Stock         int
+	Image         string
+	Weight        *float64
+	Volume        *float64
+	Status        int8
+}
+
+// UpdateSkuResponse 更新SKU响应
+type UpdateSkuResponse struct {
+	Sku *model.Sku
+}
+
+// UpdateSku 更新SKU
+func (l *ProductLogic) UpdateSku(ctx context.Context, req *UpdateSkuRequest) (*UpdateSkuResponse, error) {
+	if l.skuRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+	// Outbox 要求：SKU 变更需要触发商品索引更新
+	if l.db != nil && l.outboxRepo != nil {
+		var outSku *model.Sku
+		if err := l.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			skuRepoTx := repository.NewSkuRepository(tx)
+			if req.ID == 0 {
+				return apperrors.NewInvalidParamError("SKU ID不能为空")
+			}
+			sku, err := skuRepoTx.GetByID(ctx, req.ID)
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return apperrors.NewError(apperrors.CodeNotFound, "SKU不存在")
+				}
+				return apperrors.NewInternalError("查询SKU失败: " + err.Error())
+			}
+			if sku == nil {
+				return apperrors.NewError(apperrors.CodeNotFound, "SKU不存在")
+			}
+
+			// 更新字段（复用原逻辑）
+			if req.SkuCode != "" {
+				if req.SkuCode != sku.SkuCode {
+					existingSku, err := skuRepoTx.GetBySkuCode(ctx, req.SkuCode)
+					if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+						return apperrors.NewInternalError("查询SKU失败: " + err.Error())
+					}
+					if existingSku != nil && existingSku.ID != req.ID {
+						return apperrors.NewError(apperrors.CodeAlreadyExists, "SKU编码已存在")
+					}
+					deletedSku, err := skuRepoTx.GetBySkuCodeUnscoped(ctx, req.SkuCode)
+					if err == nil && deletedSku != nil && deletedSku.ID != req.ID {
+						return apperrors.NewError(apperrors.CodeAlreadyExists, "SKU编码已存在（可能是之前删除过的记录），请更换SKU编码")
+					}
+				}
+				sku.SkuCode = req.SkuCode
+			}
+			if req.Name != "" {
+				sku.Name = req.Name
+			}
+			if len(req.Specs) > 0 {
+				specsJSON, err := json.Marshal(req.Specs)
+				if err != nil {
+					return apperrors.NewInternalError("规格属性格式错误: " + err.Error())
+				}
+				sku.Specs = string(specsJSON)
+			}
+			if req.Price > 0 {
+				sku.Price = req.Price
+			}
+			if req.OriginalPrice != nil {
+				sku.OriginalPrice = req.OriginalPrice
+			}
+			if req.Stock >= 0 {
+				sku.Stock = req.Stock
+			}
+			if req.Image != "" {
+				sku.Image = req.Image
+			}
+			if req.Weight != nil {
+				sku.Weight = req.Weight
+			}
+			if req.Volume != nil {
+				sku.Volume = req.Volume
+			}
+			if req.Status >= 0 {
+				sku.Status = req.Status
+			}
+			sku.UpdatedAt = time.Now()
+
+			if err := skuRepoTx.Update(ctx, sku); err != nil {
+				if isDuplicateSkuCodeErr(err) {
+					return apperrors.NewError(apperrors.CodeAlreadyExists, "SKU编码已存在（可能是之前删除过的记录），请更换SKU编码")
+				}
+				return apperrors.NewInternalError("更新SKU失败: " + err.Error())
+			}
+			outSku = sku
+
+			// 同事务写 outbox
+			payloadBytes, _ := json.Marshal(map[string]any{"product_id": sku.ProductID})
+			payload := string(payloadBytes)
+			evt := &outbox.Event{
+				AggregateType: "product",
+				AggregateID:   fmt.Sprintf("%d", sku.ProductID),
+				EventType:     outbox.EventProductUpserted,
+				Payload:       &payload,
+				Status:        outbox.StatusPending,
+			}
+			return l.outboxRepo.CreateInTx(ctx, tx, evt)
+		}); err != nil {
+			return nil, err
+		}
+
+		// 清除缓存
+		if outSku != nil && l.cache != nil {
+			_ = l.cache.Delete(ctx, cache.BuildKey(cache.KeyPrefixSkuInfo, outSku.ID))
+			_ = l.cache.Delete(ctx, cache.BuildKey(cache.KeyPrefixProductDetail, outSku.ProductID))
+			_ = l.cache.DeletePattern(ctx, cache.KeyPrefixProductList+"*")
+		}
+
+		return &UpdateSkuResponse{Sku: outSku}, nil
+	}
+
+	if req.ID == 0 {
+		return nil, apperrors.NewInvalidParamError("SKU ID不能为空")
+	}
+
+	// 获取现有SKU
+	sku, err := l.skuRepo.GetByID(ctx, req.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewError(apperrors.CodeNotFound, "SKU不存在")
+		}
+		return nil, apperrors.NewInternalError("查询SKU失败: " + err.Error())
+	}
+	if sku == nil {
+		return nil, apperrors.NewError(apperrors.CodeNotFound, "SKU不存在")
+	}
+
+	// 更新字段
+	if req.SkuCode != "" {
+		// 检查SKU编码是否与其他SKU重复
+		if req.SkuCode != "" && req.SkuCode != sku.SkuCode {
+			existingSku, err := l.skuRepo.GetBySkuCode(ctx, req.SkuCode)
+			if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, apperrors.NewInternalError("查询SKU失败: " + err.Error())
+			}
+			if existingSku != nil && existingSku.ID != req.ID {
+				return nil, apperrors.NewError(apperrors.CodeAlreadyExists, "SKU编码已存在")
+			}
+			// 软删除记录也会占用唯一索引
+			deletedSku, err := l.skuRepo.GetBySkuCodeUnscoped(ctx, req.SkuCode)
+			if err == nil && deletedSku != nil && deletedSku.ID != req.ID {
+				return nil, apperrors.NewError(apperrors.CodeAlreadyExists, "SKU编码已存在（可能是之前删除过的记录），请更换SKU编码")
+			}
+		}
+		sku.SkuCode = req.SkuCode
+	}
+	if req.Name != "" {
+		sku.Name = req.Name
+	}
+	if len(req.Specs) > 0 {
+		specsJSON, err := json.Marshal(req.Specs)
+		if err != nil {
+			return nil, apperrors.NewInternalError("规格属性格式错误: " + err.Error())
+		}
+		sku.Specs = string(specsJSON)
+	}
+	if req.Price > 0 {
+		sku.Price = req.Price
+	}
+	if req.OriginalPrice != nil {
+		sku.OriginalPrice = req.OriginalPrice
+	}
+	if req.Stock >= 0 {
+		sku.Stock = req.Stock
+	}
+	if req.Image != "" {
+		sku.Image = req.Image
+	}
+	if req.Weight != nil {
+		sku.Weight = req.Weight
+	}
+	if req.Volume != nil {
+		sku.Volume = req.Volume
+	}
+	if req.Status >= 0 {
+		sku.Status = req.Status
+	}
+
+	sku.UpdatedAt = time.Now()
+
+	if err := l.skuRepo.Update(ctx, sku); err != nil {
+		if isDuplicateSkuCodeErr(err) {
+			return nil, apperrors.NewError(apperrors.CodeAlreadyExists, "SKU编码已存在（可能是之前删除过的记录），请更换SKU编码")
+		}
+		return nil, apperrors.NewInternalError("更新SKU失败: " + err.Error())
+	}
+
+	// 清除缓存
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixSkuInfo, sku.ID)
+		_ = l.cache.Delete(ctx, cacheKey)
+		_ = l.cache.Delete(ctx, cache.BuildKey(cache.KeyPrefixProductDetail, sku.ProductID))
+		_ = l.cache.DeletePattern(ctx, cache.KeyPrefixProductList+"*")
+	}
+
+	return &UpdateSkuResponse{
+		Sku: sku,
+	}, nil
+}
+
+// DeleteSkuRequest 删除SKU请求
+type DeleteSkuRequest struct {
+	ID uint64
+}
+
+// DeleteSkuResponse 删除SKU响应
+type DeleteSkuResponse struct{}
+
+// DeleteSku 删除SKU（软删除）
+func (l *ProductLogic) DeleteSku(ctx context.Context, req *DeleteSkuRequest) (*DeleteSkuResponse, error) {
+	if l.skuRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+	// Outbox 要求：SKU 变更需要触发商品索引更新
+	if l.db != nil && l.outboxRepo != nil {
+		var productID uint64
+		if err := l.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			skuRepoTx := repository.NewSkuRepository(tx)
+			if req.ID == 0 {
+				return apperrors.NewInvalidParamError("SKU ID不能为空")
+			}
+			sku, err := skuRepoTx.GetByID(ctx, req.ID)
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return apperrors.NewError(apperrors.CodeNotFound, "SKU不存在")
+				}
+				return apperrors.NewInternalError("查询SKU失败: " + err.Error())
+			}
+			if sku == nil {
+				return apperrors.NewError(apperrors.CodeNotFound, "SKU不存在")
+			}
+			productID = sku.ProductID
+
+			if err := skuRepoTx.Delete(ctx, req.ID); err != nil {
+				return apperrors.NewInternalError("删除SKU失败: " + err.Error())
+			}
+
+			payloadBytes, _ := json.Marshal(map[string]any{"product_id": productID})
+			payload := string(payloadBytes)
+			evt := &outbox.Event{
+				AggregateType: "product",
+				AggregateID:   fmt.Sprintf("%d", productID),
+				EventType:     outbox.EventProductUpserted,
+				Payload:       &payload,
+				Status:        outbox.StatusPending,
+			}
+			return l.outboxRepo.CreateInTx(ctx, tx, evt)
+		}); err != nil {
+			return nil, err
+		}
+
+		// 清除缓存
+		if l.cache != nil {
+			_ = l.cache.Delete(ctx, cache.BuildKey(cache.KeyPrefixSkuInfo, req.ID))
+			if productID > 0 {
+				_ = l.cache.Delete(ctx, cache.BuildKey(cache.KeyPrefixProductDetail, productID))
+			}
+			_ = l.cache.DeletePattern(ctx, cache.KeyPrefixProductList+"*")
+		}
+
+		return &DeleteSkuResponse{}, nil
+	}
+
+	if req.ID == 0 {
+		return nil, apperrors.NewInvalidParamError("SKU ID不能为空")
+	}
+
+	// 检查SKU是否存在
+	sku, err := l.skuRepo.GetByID(ctx, req.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewError(apperrors.CodeNotFound, "SKU不存在")
+		}
+		return nil, apperrors.NewInternalError("查询SKU失败: " + err.Error())
+	}
+	if sku == nil {
+		return nil, apperrors.NewError(apperrors.CodeNotFound, "SKU不存在")
+	}
+
+	// 执行软删除
+	if err := l.skuRepo.Delete(ctx, req.ID); err != nil {
+		return nil, apperrors.NewInternalError("删除SKU失败: " + err.Error())
+	}
+
+	// 清除缓存
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixSkuInfo, req.ID)
+		_ = l.cache.Delete(ctx, cacheKey)
+		_ = l.cache.Delete(ctx, cache.BuildKey(cache.KeyPrefixProductDetail, sku.ProductID))
+		_ = l.cache.DeletePattern(ctx, cache.KeyPrefixProductList+"*")
+	}
+
+	return &DeleteSkuResponse{}, nil
+}
