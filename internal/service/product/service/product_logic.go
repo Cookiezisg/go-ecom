@@ -1095,3 +1095,139 @@ func (l *ProductLogic) DeleteSku(ctx context.Context, req *DeleteSkuRequest) (*D
 	return &DeleteSkuResponse{}, nil
 }
 
+// GetCategoryListRequest 获取类目列表请求
+type GetCategoryListRequest struct {
+	ParentID uint64
+	Level    int8
+	Status   int8
+}
+
+// GetCategoryListResponse 获取类目列表响应
+type GetCategoryListResponse struct {
+	Categories []*model.Category
+}
+
+// GetCategoryList 获取类目列表
+func (l *ProductLogic) GetCategoryList(ctx context.Context, req *GetCategoryListRequest) (*GetCategoryListResponse, error) {
+	if l.categoryRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+
+	var categories []*model.Category
+	var err error
+
+	if req.ParentID > 0 {
+		categories, err = l.categoryRepo.GetByParentID(ctx, req.ParentID)
+	} else {
+		categories, err = l.categoryRepo.GetAll(ctx, req.Status)
+	}
+
+	if err != nil {
+		return nil, apperrors.NewInternalError("查询类目失败: " + err.Error())
+	}
+
+	return &GetCategoryListResponse{
+		Categories: categories,
+	}, nil
+}
+
+// GetCategoryTreeRequest 获取类目树请求
+type GetCategoryTreeRequest struct {
+	Status int8
+}
+
+// GetCategoryTreeResponse 获取类目树响应
+type GetCategoryTreeResponse struct {
+	Categories []*CategoryTreeNode
+}
+
+// CategoryTreeNode 类目树节点
+type CategoryTreeNode struct {
+	*model.Category
+	Children []*CategoryTreeNode `json:"children"`
+}
+
+func (l *ProductLogic) GetCategoryTree(ctx context.Context, req *GetCategoryTreeRequest) (*GetCategoryTreeResponse, error) {
+	if l.categoryRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+
+	cacheKey := cache.BuildKey(cache.KeyPrefixCategoryTree, req.Status)
+
+	if l.cache != nil {
+		var cachedResp GetCategoryTreeResponse
+		if err := l.cache.GetJSON(ctx, cacheKey, &cachedResp); err == nil {
+			return &cachedResp, nil
+		}
+	}
+
+	allCategories, err := l.categoryRepo.GetAll(ctx, req.Status)
+	if err != nil {
+		return nil, apperrors.NewInternalError("查询类目失败: " + err.Error())
+	}
+
+	tree := buildCategoryTree(allCategories)
+
+	resp := &GetCategoryTreeResponse{
+		Categories: tree,
+	}
+
+	if l.cache != nil {
+		_ = l.cache.Set(ctx, cacheKey, resp, 30*time.Minute)
+	}
+
+	return resp, nil
+}
+
+func buildCategoryTree(categories []*model.Category) []*CategoryTreeNode {
+	categoryMap := make(map[uint64]*CategoryTreeNode)
+	for _, c := range categories {
+		categoryMap[c.ID] = &CategoryTreeNode{
+			Category: c,
+			Children: []*CategoryTreeNode{},
+		}
+	}
+
+	var rootNodes []*CategoryTreeNode
+	for _, node := range categoryMap {
+		if node.ParentID == 0 {
+			rootNodes = append(rootNodes, node)
+		} else if parentNode, exists := categoryMap[node.ParentID]; exists {
+			parentNode.Children = append(parentNode.Children, node)
+		}
+	}
+
+	return rootNodes
+}
+
+func (l *ProductLogic) clearCategoryTreeCache(ctx context.Context) {
+	if l.cache == nil {
+		return
+	}
+
+	status := []int8{-1, 0, 1, 2}
+	for _, s := range status {
+		cacheKey := cache.BuildKey(cache.KeyPrefixCategoryTree, s)
+		_ = l.cache.Delete(ctx, cacheKey)
+	}
+}
+
+// parseJSONArray 解析JSON数组字符串
+func parseJSONArray(jsonStr string) ([]string, error) {
+	if jsonStr == "" {
+		return []string{}, nil
+	}
+	var result []string
+	err := json.Unmarshal([]byte(jsonStr), &result)
+	return result, err
+}
+
+// parseJSONMap 解析JSON对象字符串
+func parseJSONMap(jsonStr string) (map[string]string, error) {
+	if jsonStr == "" {
+		return map[string]string{}, nil
+	}
+	var result map[string]string
+	err := json.Unmarshal([]byte(jsonStr), &result)
+	return result, err
+}
