@@ -1094,3 +1094,4 @@ func (l *ProductLogic) DeleteSku(ctx context.Context, req *DeleteSkuRequest) (*D
 
 	return &DeleteSkuResponse{}, nil
 }
+
