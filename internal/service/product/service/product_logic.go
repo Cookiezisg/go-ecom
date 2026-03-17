@@ -63,33 +63,35 @@ func NewProductLogic(
 	}
 }
 
+// GetProductRequest 获取商品详情请求
 type GetProductRequest struct {
 	ID      uint64
 	SpuCode string
 }
 
+// GetProductResponse 获取商品详情响应
 type GetProductResponse struct {
 	Product *model.Product
 	Skus    []*model.Sku
 }
 
+// GetProduct 获取商品详情（带缓存）
 func (l *ProductLogic) GetProduct(ctx context.Context, req *GetProductRequest) (*GetProductResponse, error) {
-	// 这里是product服务的查询，所以检查一下这里的链接的情况
-
+	// 检查 repository 是否初始化
 	if l.productRepo == nil {
-		return nil, apperrors.NewInternalError("数据库没有初始化")
+		return nil, apperrors.NewInternalError("数据库连接未初始化，请检查数据库配置")
 	}
 
 	var productID uint64
 	var err error
 
-	//这里是一个比较傻逼的逻辑，先想办法获取productID，如果没有，就根据SpuCode查询一次，获取到productID后再查询一次，这样就能复用之前的查询逻辑了
-	if req.ID != 0 {
+	// 确定商品ID
+	if req.ID > 0 {
 		productID = req.ID
 	} else if req.SpuCode != "" {
 		product, err := l.productRepo.GetBySpuCode(ctx, req.SpuCode)
 		if err != nil {
-			return nil, apperrors.NewInternalError("根据SpuCode查询商品失败: " + err.Error())
+			return nil, apperrors.NewInternalError("查询商品失败: " + err.Error())
 		}
 		if product == nil {
 			return nil, apperrors.NewError(apperrors.CodeNotFound, "商品不存在")
@@ -99,7 +101,7 @@ func (l *ProductLogic) GetProduct(ctx context.Context, req *GetProductRequest) (
 		return nil, apperrors.NewInvalidParamError("商品ID或SPU编码不能为空")
 	}
 
-	// 瞎几把走一下缓存
+	// 尝试从缓存获取
 	if l.cache != nil {
 		cacheKey := cache.BuildKey(cache.KeyPrefixProductDetail, productID)
 		var cachedResp GetProductResponse
@@ -120,17 +122,22 @@ func (l *ProductLogic) GetProduct(ctx context.Context, req *GetProductRequest) (
 		return nil, apperrors.NewError(apperrors.CodeProductNotFound, "商品不存在")
 	}
 
-	skus, err := l.skuRepo.GetByProductID(ctx, productID)
+	// 获取SKU列表
+	skus, err := l.skuRepo.GetByProductID(ctx, product.ID)
 	if err != nil {
-		return nil, apperrors.NewInternalError("查询商品SKU失败: " + err.Error())
+		return nil, apperrors.NewInternalError("查询SKU列表失败: " + err.Error())
 	}
 
+	// 口径统一：详情页返回的 product.price / product.stock 用“上架 SKU 聚合值”兜底
+	// - price: 上架 SKU 最低价
+	// - stock: 上架 SKU 总库存
+	// 注意：这里只改返回值，不落库
 	if len(skus) > 0 {
 		minPrice := math.MaxFloat64
 		totalStock := 0
 		hasActive := false
 		for _, s := range skus {
-			if s == nil || s.Price != 1 {
+			if s == nil || s.Status != 1 {
 				continue
 			}
 			hasActive = true
@@ -154,7 +161,7 @@ func (l *ProductLogic) GetProduct(ctx context.Context, req *GetProductRequest) (
 		Skus:    skus,
 	}
 
-	// 写缓存
+	// 写入缓存
 	if l.cache != nil {
 		cacheKey := cache.BuildKey(cache.KeyPrefixProductDetail, productID)
 		_ = l.cache.Set(ctx, cacheKey, resp, 1*time.Hour)
@@ -184,13 +191,14 @@ type ListProductsResponse struct {
 	TotalPages int
 }
 
+// ListProducts 获取商品列表（带缓存）
 func (l *ProductLogic) ListProducts(ctx context.Context, req *ListProductsRequest) (*ListProductsResponse, error) {
-
+	// 检查 repository 是否初始化
 	if l.productRepo == nil {
-		return nil, apperrors.NewInternalError("数据库没有初始化")
+		return nil, apperrors.NewInternalError("数据库连接未初始化，请检查数据库配置")
 	}
 
-	//参数验证
+	// 参数验证
 	if req.Page <= 0 {
 		req.Page = 1
 	}
@@ -203,6 +211,7 @@ func (l *ProductLogic) ListProducts(ctx context.Context, req *ListProductsReques
 	if req.Sort == "" {
 		req.Sort = "default"
 	}
+
 	// 兼容：点击“主分类”时，需要过滤出其所有子分类（以及更深层级）下的商品
 	// 前端仍然只传 category_id=主分类ID，后端自动展开为 category_id IN (...)
 	var expandedCategoryIDs []uint64
@@ -213,11 +222,19 @@ func (l *ProductLogic) ListProducts(ctx context.Context, req *ListProductsReques
 		}
 	}
 
-	// 缓存的key
+	// 构建缓存键
 	if l.cache != nil {
-		cacheKey := cache.BuildKey(
+		// v2：避免老缓存（精确匹配 category_id）导致改完逻辑后短时间仍返回旧结果
+		cacheKey := fmt.Sprintf("%sv2:%d:%d:%d:%d:%s:%d:%d:%s",
 			cache.KeyPrefixProductList,
-			req.CategoryID, req.BrandID, req.Keyword, req.Status, req.IsHot, req.Page, req.PageSize, req.Sort,
+			req.CategoryID,
+			req.BrandID,
+			req.Status,
+			req.IsHot,
+			req.Keyword,
+			req.Page,
+			req.PageSize,
+			req.Sort,
 		)
 		var cachedResp ListProductsResponse
 		if err := l.cache.GetJSON(ctx, cacheKey, &cachedResp); err == nil {
@@ -225,6 +242,7 @@ func (l *ProductLogic) ListProducts(ctx context.Context, req *ListProductsReques
 		}
 	}
 
+	// 构建查询请求
 	repoReq := &repository.ListProductsRequest{
 		CategoryID:  req.CategoryID,
 		CategoryIDs: expandedCategoryIDs,
@@ -236,6 +254,8 @@ func (l *ProductLogic) ListProducts(ctx context.Context, req *ListProductsReques
 		PageSize:    req.PageSize,
 		Sort:        req.Sort,
 	}
+
+	// 查询商品列表
 	products, total, err := l.productRepo.List(ctx, repoReq)
 	if err != nil {
 		return nil, apperrors.NewInternalError("查询商品列表失败: " + err.Error())
@@ -287,17 +307,23 @@ func (l *ProductLogic) ListProducts(ctx context.Context, req *ListProductsReques
 		TotalPages: totalPages,
 	}
 
-	// 写缓存 10分钟
+	// 写入缓存（10分钟）
 	if l.cache != nil {
-		cacheKey := cache.BuildKey(
+		cacheKey := fmt.Sprintf("%sv2:%d:%d:%d:%d:%s:%d:%d:%s",
 			cache.KeyPrefixProductList,
-			req.CategoryID, req.BrandID, req.Keyword, req.Status, req.IsHot, req.Page, req.PageSize, req.Sort,
+			req.CategoryID,
+			req.BrandID,
+			req.Status,
+			req.IsHot,
+			req.Keyword,
+			req.Page,
+			req.PageSize,
+			req.Sort,
 		)
 		_ = l.cache.Set(ctx, cacheKey, resp, 10*time.Minute)
 	}
 
 	return resp, nil
-
 }
 
 // collectDescendantCategoryIDs 收集某个分类的所有子孙分类 ID（包含自身）
@@ -333,40 +359,44 @@ func (l *ProductLogic) collectDescendantCategoryIDs(ctx context.Context, rootID 
 	return out, nil
 }
 
+// GetSkuRequest 获取SKU详情请求
 type GetSkuRequest struct {
 	ID      uint64
 	SkuCode string
 }
 
+// GetSkuResponse 获取SKU详情响应
 type GetSkuResponse struct {
 	Sku *model.Sku
 }
 
+// GetSku 获取SKU详情（带缓存）
 func (l *ProductLogic) GetSku(ctx context.Context, req *GetSkuRequest) (*GetSkuResponse, error) {
-
+	// 检查 repository 是否初始化
 	if l.skuRepo == nil {
-		return nil, apperrors.NewInternalError("数据库没有初始化")
+		return nil, apperrors.NewInternalError("数据库连接未初始化，请检查数据库配置")
 	}
 
 	var skuID uint64
 	var err error
 
+	// 确定SKU ID
 	if req.ID > 0 {
 		skuID = req.ID
 	} else if req.SkuCode != "" {
 		sku, err := l.skuRepo.GetBySkuCode(ctx, req.SkuCode)
 		if err != nil {
-			return nil, apperrors.NewInternalError("根据SKU编码查询SKU失败: " + err.Error())
+			return nil, apperrors.NewInternalError("查询SKU失败: " + err.Error())
 		}
 		if sku == nil {
-			return nil, apperrors.NewError(apperrors.CodeSkuNotFound, "SKU不存在")
+			return nil, apperrors.NewError(apperrors.CodeNotFound, "SKU不存在")
 		}
 		skuID = sku.ID
 	} else {
 		return nil, apperrors.NewInvalidParamError("SKU ID或SKU编码不能为空")
 	}
 
-	// 走一下缓存试试看
+	// 尝试从缓存获取
 	if l.cache != nil {
 		cacheKey := cache.BuildKey(cache.KeyPrefixSkuInfo, skuID)
 		var cachedResp GetSkuResponse
@@ -375,19 +405,20 @@ func (l *ProductLogic) GetSku(ctx context.Context, req *GetSkuRequest) (*GetSkuR
 		}
 	}
 
+	// 从数据库查询
 	sku, err := l.skuRepo.GetByID(ctx, skuID)
 	if err != nil {
 		return nil, apperrors.NewInternalError("查询SKU失败: " + err.Error())
 	}
 	if sku == nil {
-		return nil, apperrors.NewError(apperrors.CodeSkuNotFound, "SKU不存在")
+		return nil, apperrors.NewError(apperrors.CodeNotFound, "SKU不存在")
 	}
 
 	resp := &GetSkuResponse{
 		Sku: sku,
 	}
 
-	// 写缓存 1小时
+	// 写入缓存
 	if l.cache != nil {
 		cacheKey := cache.BuildKey(cache.KeyPrefixSkuInfo, skuID)
 		_ = l.cache.Set(ctx, cacheKey, resp, 1*time.Hour)
@@ -396,13 +427,15 @@ func (l *ProductLogic) GetSku(ctx context.Context, req *GetSkuRequest) (*GetSkuR
 	return resp, nil
 }
 
+// ListSkusRequest 获取SKU列表请求
 type ListSkusRequest struct {
 	ProductID uint64
-	Status    int8
+	Status    int8 // -1-全部, 0-下架, 1-上架
 	Page      int
 	PageSize  int
 }
 
+// ListSkusResponse 获取SKU列表响应
 type ListSkusResponse struct {
 	Skus       []*model.Sku
 	Page       int
@@ -411,12 +444,13 @@ type ListSkusResponse struct {
 	TotalPages int
 }
 
+// ListSkus 获取SKU列表
 func (l *ProductLogic) ListSkus(ctx context.Context, req *ListSkusRequest) (*ListSkusResponse, error) {
-
 	if l.skuRepo == nil {
-		return nil, apperrors.NewInternalError("数据库没有初始化")
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
 	}
 
+	// 参数验证和默认值处理
 	page := req.Page
 	if page <= 0 {
 		page = 1
@@ -438,6 +472,9 @@ func (l *ProductLogic) ListSkus(ctx context.Context, req *ListSkusRequest) (*Lis
 		return nil, apperrors.NewInternalError("查询SKU列表失败: " + err.Error())
 	}
 
+	// 兜底：用户侧经常按 product_id + status=1 查询 SKU。
+	// 如果该商品一个 SKU 都没有，会导致前端无法选择规格、无法加入购物车。
+	// 这里自动创建一个“默认 SKU”（仅在该商品完全没有 SKU 时才创建）。
 	if req.ProductID > 0 && req.Status == 1 && total == 0 {
 		existing, err := l.skuRepo.GetByProductID(ctx, req.ProductID)
 		if err == nil && len(existing) == 0 && l.productRepo != nil {
@@ -474,6 +511,11 @@ func (l *ProductLogic) ListSkus(ctx context.Context, req *ListSkusRequest) (*Lis
 			}
 		}
 	}
+
+	// 调试日志
+	fmt.Printf("[ProductLogic.ListSkus] ProductID=%d, Status=%d, Page=%d, PageSize=%d, Total=%d, Found=%d\\n",
+		req.ProductID, req.Status, page, pageSize, total, len(skus))
+
 	totalPages := int((total + int64(pageSize) - 1) / int64(pageSize))
 	if totalPages == 0 && total > 0 {
 		totalPages = 1
@@ -1109,21 +1151,24 @@ type GetCategoryListResponse struct {
 
 // GetCategoryList 获取类目列表
 func (l *ProductLogic) GetCategoryList(ctx context.Context, req *GetCategoryListRequest) (*GetCategoryListResponse, error) {
+	// 检查 repository 是否初始化
 	if l.categoryRepo == nil {
-		return nil, apperrors.NewInternalError("数据库连接未初始化")
+		return nil, apperrors.NewInternalError("数据库连接未初始化，请检查数据库配置")
 	}
 
 	var categories []*model.Category
 	var err error
 
 	if req.ParentID > 0 {
+		// 根据父ID查询子类目
 		categories, err = l.categoryRepo.GetByParentID(ctx, req.ParentID)
 	} else {
+		// 查询所有类目
 		categories, err = l.categoryRepo.GetAll(ctx, req.Status)
 	}
 
 	if err != nil {
-		return nil, apperrors.NewInternalError("查询类目失败: " + err.Error())
+		return nil, apperrors.NewInternalError("查询类目列表失败: " + err.Error())
 	}
 
 	return &GetCategoryListResponse{
@@ -1147,13 +1192,17 @@ type CategoryTreeNode struct {
 	Children []*CategoryTreeNode `json:"children"`
 }
 
+// GetCategoryTree 获取类目树（带缓存）
 func (l *ProductLogic) GetCategoryTree(ctx context.Context, req *GetCategoryTreeRequest) (*GetCategoryTreeResponse, error) {
+	// 检查 repository 是否初始化
 	if l.categoryRepo == nil {
-		return nil, apperrors.NewInternalError("数据库连接未初始化")
+		return nil, apperrors.NewInternalError("数据库连接未初始化，请检查数据库配置")
 	}
 
-	cacheKey := cache.BuildKey(cache.KeyPrefixCategoryTree, req.Status)
+	// 构建缓存 key（包含 status 参数，避免不同 status 的缓存冲突）
+	cacheKey := fmt.Sprintf("%s:status:%d", cache.KeyPrefixCategoryTree, req.Status)
 
+	// 尝试从缓存获取
 	if l.cache != nil {
 		var cachedResp GetCategoryTreeResponse
 		if err := l.cache.GetJSON(ctx, cacheKey, &cachedResp); err == nil {
@@ -1161,53 +1210,65 @@ func (l *ProductLogic) GetCategoryTree(ctx context.Context, req *GetCategoryTree
 		}
 	}
 
+	// 获取所有类目
 	allCategories, err := l.categoryRepo.GetAll(ctx, req.Status)
 	if err != nil {
 		return nil, apperrors.NewInternalError("查询类目失败: " + err.Error())
 	}
 
+	// 构建类目树
 	tree := buildCategoryTree(allCategories)
 
 	resp := &GetCategoryTreeResponse{
 		Categories: tree,
 	}
 
+	// 写入缓存（24小时）
 	if l.cache != nil {
-		_ = l.cache.Set(ctx, cacheKey, resp, 30*time.Minute)
+		_ = l.cache.Set(ctx, cacheKey, resp, 24*time.Hour)
 	}
 
 	return resp, nil
 }
 
+// buildCategoryTree 构建类目树
 func buildCategoryTree(categories []*model.Category) []*CategoryTreeNode {
+	// 创建映射表
 	categoryMap := make(map[uint64]*CategoryTreeNode)
-	for _, c := range categories {
-		categoryMap[c.ID] = &CategoryTreeNode{
-			Category: c,
+	for _, cat := range categories {
+		categoryMap[cat.ID] = &CategoryTreeNode{
+			Category: cat,
 			Children: []*CategoryTreeNode{},
 		}
 	}
 
+	// 构建树结构
 	var rootNodes []*CategoryTreeNode
-	for _, node := range categoryMap {
-		if node.ParentID == 0 {
+	for _, cat := range categories {
+		node := categoryMap[cat.ID]
+		if cat.ParentID == 0 {
+			// 根节点
 			rootNodes = append(rootNodes, node)
-		} else if parentNode, exists := categoryMap[node.ParentID]; exists {
-			parentNode.Children = append(parentNode.Children, node)
+		} else {
+			// 子节点
+			if parent, ok := categoryMap[cat.ParentID]; ok {
+				parent.Children = append(parent.Children, node)
+			}
 		}
 	}
 
 	return rootNodes
 }
 
+// clearCategoryTreeCache 清除所有 status 的分类树缓存
 func (l *ProductLogic) clearCategoryTreeCache(ctx context.Context) {
 	if l.cache == nil {
 		return
 	}
-
-	status := []int8{-1, 0, 1, 2}
-	for _, s := range status {
-		cacheKey := cache.BuildKey(cache.KeyPrefixCategoryTree, s)
+	// 清除常见的 status 值的缓存（-1: 所有, 0: 禁用, 1: 启用, 2: 其他状态）
+	statuses := []int8{-1, 0, 1, 2}
+	for _, status := range statuses {
+		cacheKey := fmt.Sprintf("%s:status:%d", cache.KeyPrefixCategoryTree, status)
 		_ = l.cache.Delete(ctx, cacheKey)
 	}
 }
@@ -1230,4 +1291,1031 @@ func parseJSONMap(jsonStr string) (map[string]string, error) {
 	var result map[string]string
 	err := json.Unmarshal([]byte(jsonStr), &result)
 	return result, err
+}
+
+// CreateProductRequest 创建商品请求
+type CreateProductRequest struct {
+	Name           string
+	Subtitle       string
+	CategoryID     uint64
+	BrandID        *uint64
+	MainImage      string
+	LocalMainImage string
+	Images         []string
+	LocalImages    []string
+	Detail         string
+	Price          float64
+	OriginalPrice  float64
+	Stock          int
+	Status         int8
+	IsHot          int8
+}
+
+// CreateProductResponse 创建商品响应
+type CreateProductResponse struct {
+	Product *model.Product
+}
+
+// CreateProduct 创建商品（管理后台）
+func (l *ProductLogic) CreateProduct(ctx context.Context, req *CreateProductRequest) (*CreateProductResponse, error) {
+	if l.productRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+	// Outbox 要求：商品写库与 outbox 同事务
+	if l.db != nil && l.outboxRepo != nil {
+		// 参数验证（复用原逻辑）
+		if req.Name == "" {
+			return nil, apperrors.NewInvalidParamError("商品名称不能为空")
+		}
+		if req.CategoryID == 0 {
+			return nil, apperrors.NewInvalidParamError("分类ID不能为空")
+		}
+		if req.Price <= 0 {
+			return nil, apperrors.NewInvalidParamError("价格必须大于0")
+		}
+
+		// 转换图片列表为JSON
+		imagesJSON := "[]"
+		if len(req.Images) > 0 {
+			imagesBytes, err := json.Marshal(req.Images)
+			if err != nil {
+				return nil, apperrors.NewInternalError("图片列表格式错误: " + err.Error())
+			}
+			imagesJSON = string(imagesBytes)
+		}
+
+		// 转换本地图片列表为JSON
+		localImagesJSON := "[]"
+		if len(req.LocalImages) > 0 {
+			localImagesBytes, err := json.Marshal(req.LocalImages)
+			if err != nil {
+				return nil, apperrors.NewInternalError("本地图片列表格式错误: " + err.Error())
+			}
+			localImagesJSON = string(localImagesBytes)
+		}
+
+		spuCode := fmt.Sprintf("SPU%08d", time.Now().Unix()%100000000)
+		now := time.Now()
+		product := &model.Product{
+			SpuCode:        spuCode,
+			Name:           req.Name,
+			Subtitle:       req.Subtitle,
+			CategoryID:     req.CategoryID,
+			BrandID:        req.BrandID,
+			MainImage:      req.MainImage,
+			LocalMainImage: req.LocalMainImage,
+			Images:         imagesJSON,
+			LocalImages:    localImagesJSON,
+			Detail:         req.Detail,
+			Price:          req.Price,
+			Stock:          req.Stock,
+			Status:         req.Status,
+			IsHot:          req.IsHot,
+			CreatedAt:      now,
+			UpdatedAt:      now,
+		}
+		if req.OriginalPrice > 0 {
+			product.OriginalPrice = &req.OriginalPrice
+		}
+
+		if err := l.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			productRepoTx := repository.NewProductRepository(tx)
+			if err := productRepoTx.Create(ctx, product); err != nil {
+				return apperrors.NewInternalError("创建商品失败: " + err.Error())
+			}
+
+			payloadBytes, _ := json.Marshal(map[string]any{"product_id": product.ID})
+			payload := string(payloadBytes)
+			evt := &outbox.Event{
+				AggregateType: "product",
+				AggregateID:   fmt.Sprintf("%d", product.ID),
+				EventType:     outbox.EventProductUpserted,
+				Payload:       &payload,
+				Status:        outbox.StatusPending,
+			}
+			return l.outboxRepo.CreateInTx(ctx, tx, evt)
+		}); err != nil {
+			return nil, err
+		}
+
+		// 清除相关缓存
+		if l.cache != nil {
+			_ = l.cache.DeletePattern(ctx, cache.KeyPrefixProductList+"*")
+			cacheKey := cache.BuildKey(cache.KeyPrefixProductDetail, product.ID)
+			_ = l.cache.Delete(ctx, cacheKey)
+		}
+
+		return &CreateProductResponse{Product: product}, nil
+	}
+
+	// 参数验证
+	if req.Name == "" {
+		return nil, apperrors.NewInvalidParamError("商品名称不能为空")
+	}
+	if req.CategoryID == 0 {
+		return nil, apperrors.NewInvalidParamError("分类ID不能为空")
+	}
+	if req.Price <= 0 {
+		return nil, apperrors.NewInvalidParamError("价格必须大于0")
+	}
+
+	// 转换图片列表为JSON
+	imagesJSON := "[]"
+	if len(req.Images) > 0 {
+		imagesBytes, err := json.Marshal(req.Images)
+		if err != nil {
+			return nil, apperrors.NewInternalError("图片列表格式错误: " + err.Error())
+		}
+		imagesJSON = string(imagesBytes)
+	}
+
+	// 转换本地图片列表为JSON
+	localImagesJSON := "[]"
+	if len(req.LocalImages) > 0 {
+		localImagesBytes, err := json.Marshal(req.LocalImages)
+		if err != nil {
+			return nil, apperrors.NewInternalError("本地图片列表格式错误: " + err.Error())
+		}
+		localImagesJSON = string(localImagesBytes)
+	}
+
+	// 生成SPU编码（简化处理，实际应该使用更复杂的生成规则）
+	spuCode := fmt.Sprintf("SPU%08d", time.Now().Unix()%100000000)
+
+	// 创建商品
+	now := time.Now()
+	product := &model.Product{
+		SpuCode:        spuCode,
+		Name:           req.Name,
+		Subtitle:       req.Subtitle,
+		CategoryID:     req.CategoryID,
+		BrandID:        req.BrandID,
+		MainImage:      req.MainImage,
+		LocalMainImage: req.LocalMainImage,
+		Images:         imagesJSON,
+		LocalImages:    localImagesJSON,
+		Detail:         req.Detail,
+		Price:          req.Price,
+		Stock:          req.Stock,
+		Status:         req.Status,
+		IsHot:          req.IsHot,
+		CreatedAt:      now,
+		UpdatedAt:      now,
+	}
+
+	if req.OriginalPrice > 0 {
+		product.OriginalPrice = &req.OriginalPrice
+	}
+
+	if err := l.productRepo.Create(ctx, product); err != nil {
+		return nil, apperrors.NewInternalError("创建商品失败: " + err.Error())
+	}
+
+	// 清除相关缓存
+	if l.cache != nil {
+		// 清除所有商品列表缓存（使用通配符匹配）
+		_ = l.cache.DeletePattern(ctx, cache.KeyPrefixProductList+"*")
+		// 清除商品详情缓存（如果存在）
+		cacheKey := cache.BuildKey(cache.KeyPrefixProductDetail, product.ID)
+		_ = l.cache.Delete(ctx, cacheKey)
+	}
+
+	return &CreateProductResponse{
+		Product: product,
+	}, nil
+}
+
+// UpdateProductRequest 更新商品请求
+type UpdateProductRequest struct {
+	ID             uint64
+	Name           string
+	Subtitle       string
+	CategoryID     uint64
+	BrandID        *uint64
+	MainImage      string
+	LocalMainImage string
+	Images         []string
+	LocalImages    []string
+	Detail         string
+	Price          float64
+	OriginalPrice  float64
+	Stock          int
+	Status         int8
+	IsHot          int8
+}
+
+// UpdateProductResponse 更新商品响应
+type UpdateProductResponse struct {
+	Product *model.Product
+}
+
+// UpdateProduct 更新商品（管理后台）
+func (l *ProductLogic) UpdateProduct(ctx context.Context, req *UpdateProductRequest) (*UpdateProductResponse, error) {
+	if l.productRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+	// Outbox 要求：商品写库与 outbox 同事务
+	if l.db != nil && l.outboxRepo != nil {
+		if req.ID == 0 {
+			return nil, apperrors.NewInvalidParamError("商品ID不能为空")
+		}
+		var updated *model.Product
+		if err := l.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			productRepoTx := repository.NewProductRepository(tx)
+			product, err := productRepoTx.GetByID(ctx, req.ID)
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return apperrors.NewError(apperrors.CodeProductNotFound, "商品不存在")
+				}
+				return apperrors.NewInternalError("查询商品失败: " + err.Error())
+			}
+			if product == nil {
+				return apperrors.NewError(apperrors.CodeProductNotFound, "商品不存在")
+			}
+
+			if req.Name != "" {
+				product.Name = req.Name
+			}
+			if req.Subtitle != "" {
+				product.Subtitle = req.Subtitle
+			}
+			if req.CategoryID > 0 {
+				product.CategoryID = req.CategoryID
+			}
+			if req.BrandID != nil {
+				product.BrandID = req.BrandID
+			}
+			if req.MainImage != "" {
+				product.MainImage = req.MainImage
+			}
+			if req.LocalMainImage != "" {
+				product.LocalMainImage = req.LocalMainImage
+			}
+			if req.Images != nil {
+				imagesBytes, err := json.Marshal(req.Images)
+				if err != nil {
+					return apperrors.NewInternalError("图片列表格式错误: " + err.Error())
+				}
+				product.Images = string(imagesBytes)
+			}
+			if req.LocalImages != nil {
+				localImagesBytes, err := json.Marshal(req.LocalImages)
+				if err != nil {
+					return apperrors.NewInternalError("本地图片列表格式错误: " + err.Error())
+				}
+				product.LocalImages = string(localImagesBytes)
+			}
+			if product.LocalImages == "" {
+				product.LocalImages = "[]"
+			}
+			if product.Images == "" {
+				product.Images = "[]"
+			}
+			if req.Detail != "" {
+				product.Detail = req.Detail
+			}
+			if req.Price > 0 {
+				product.Price = req.Price
+			}
+			if req.OriginalPrice > 0 {
+				product.OriginalPrice = &req.OriginalPrice
+			}
+			if req.Status >= 0 && req.Status != -1 {
+				product.Status = req.Status
+			}
+			if req.IsHot >= 0 && req.IsHot != -1 {
+				product.IsHot = req.IsHot
+			}
+			product.Stock = req.Stock
+			product.UpdatedAt = time.Now()
+
+			if err := productRepoTx.Update(ctx, product); err != nil {
+				return apperrors.NewInternalError("更新商品失败: " + err.Error())
+			}
+			updated = product
+
+			payloadBytes, _ := json.Marshal(map[string]any{"product_id": product.ID})
+			payload := string(payloadBytes)
+			evt := &outbox.Event{
+				AggregateType: "product",
+				AggregateID:   fmt.Sprintf("%d", product.ID),
+				EventType:     outbox.EventProductUpserted,
+				Payload:       &payload,
+				Status:        outbox.StatusPending,
+			}
+			return l.outboxRepo.CreateInTx(ctx, tx, evt)
+		}); err != nil {
+			return nil, err
+		}
+
+		// 清除相关缓存
+		if l.cache != nil {
+			cacheKey := cache.BuildKey(cache.KeyPrefixProductDetail, req.ID)
+			_ = l.cache.Delete(ctx, cacheKey)
+			_ = l.cache.DeletePattern(ctx, cache.KeyPrefixProductList+"*")
+		}
+
+		return &UpdateProductResponse{Product: updated}, nil
+	}
+
+	if req.ID == 0 {
+		return nil, apperrors.NewInvalidParamError("商品ID不能为空")
+	}
+
+	// 获取现有商品
+	product, err := l.productRepo.GetByID(ctx, req.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewError(apperrors.CodeProductNotFound, "商品不存在")
+		}
+		return nil, apperrors.NewInternalError("查询商品失败: " + err.Error())
+	}
+	if product == nil {
+		return nil, apperrors.NewError(apperrors.CodeProductNotFound, "商品不存在")
+	}
+
+	// 更新字段：只更新请求中明确提供的字段，未提供的字段保持原值
+	// 这是标准的 PATCH 更新逻辑：根据 ID 查询记录，只更新提供的字段
+
+	if req.Name != "" {
+		product.Name = req.Name
+	}
+	if req.Subtitle != "" {
+		product.Subtitle = req.Subtitle
+	}
+	// 分类ID：如果提供了且 > 0 则更新
+	if req.CategoryID > 0 {
+		product.CategoryID = req.CategoryID
+	}
+	if req.BrandID != nil {
+		product.BrandID = req.BrandID
+	}
+
+	// 图片字段：只有当明确提供时才更新（非空字符串或非 nil）
+	// 如果请求中没有提供图片字段（空字符串），保持原值不变
+	if req.MainImage != "" {
+		product.MainImage = req.MainImage
+	}
+	if req.LocalMainImage != "" {
+		product.LocalMainImage = req.LocalMainImage
+	}
+	if req.Images != nil {
+		imagesBytes, err := json.Marshal(req.Images)
+		if err != nil {
+			return nil, apperrors.NewInternalError("图片列表格式错误: " + err.Error())
+		}
+		product.Images = string(imagesBytes)
+	}
+	if req.LocalImages != nil {
+		localImagesBytes, err := json.Marshal(req.LocalImages)
+		if err != nil {
+			return nil, apperrors.NewInternalError("本地图片列表格式错误: " + err.Error())
+		}
+		product.LocalImages = string(localImagesBytes)
+	}
+
+	// 确保LocalImages和Images字段始终是有效的JSON（不能是空字符串）
+	if product.LocalImages == "" {
+		product.LocalImages = "[]"
+	}
+	if product.Images == "" {
+		product.Images = "[]"
+	}
+
+	if req.Detail != "" {
+		product.Detail = req.Detail
+	}
+	if req.Price > 0 {
+		product.Price = req.Price
+	}
+	if req.OriginalPrice > 0 {
+		product.OriginalPrice = &req.OriginalPrice
+	}
+	// 直接赋值：因为我们已经根据 ID 查询到了原记录
+	// 如果前端没有传递某个字段，proto 默认值是 0（对于 int32）或空字符串（对于 string）
+	// 但前端在部分更新时会明确传递需要更新的字段，未传递的字段保持原值
+	// 对于 Status 和 IsHot：使用 -1 表示"不更新"（前端明确传递 -1），其他值（>= 0）表示要更新
+	if req.Status >= 0 && req.Status != -1 {
+		product.Status = req.Status
+	}
+	if req.IsHot >= 0 && req.IsHot != -1 {
+		product.IsHot = req.IsHot
+	}
+	// Stock：直接赋值（前端只传递需要更新的字段，不传递的字段保持原值）
+	// 如果前端没有传递 stock，proto 默认值是 0，但前端在部分更新时不会传递不需要更新的字段
+	// 所以如果 stock 是 0，说明前端明确要设置为 0
+	product.Stock = req.Stock
+
+	product.UpdatedAt = time.Now()
+
+	if err := l.productRepo.Update(ctx, product); err != nil {
+		return nil, apperrors.NewInternalError("更新商品失败: " + err.Error())
+	}
+
+	// 清除相关缓存
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixProductDetail, req.ID)
+		_ = l.cache.Delete(ctx, cacheKey)
+		// 清除所有商品列表缓存
+		_ = l.cache.DeletePattern(ctx, cache.KeyPrefixProductList+"*")
+	}
+
+	return &UpdateProductResponse{
+		Product: product,
+	}, nil
+}
+
+// DeleteProductRequest 删除商品请求
+type DeleteProductRequest struct {
+	ID uint64
+}
+
+// DeleteProductResponse 删除商品响应
+type DeleteProductResponse struct {
+}
+
+// DeleteProduct 删除商品（管理后台）
+func (l *ProductLogic) DeleteProduct(ctx context.Context, req *DeleteProductRequest) (*DeleteProductResponse, error) {
+	if l.productRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+	// Outbox 要求：删除与 outbox 同事务（下游删除 ES 文档）
+	if l.db != nil && l.outboxRepo != nil {
+		if req.ID == 0 {
+			return nil, apperrors.NewInvalidParamError("商品ID不能为空")
+		}
+		if err := l.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+			productRepoTx := repository.NewProductRepository(tx)
+			// 确认存在
+			product, err := productRepoTx.GetByID(ctx, req.ID)
+			if err != nil {
+				if errors.Is(err, gorm.ErrRecordNotFound) {
+					return apperrors.NewError(apperrors.CodeProductNotFound, "商品不存在")
+				}
+				return apperrors.NewInternalError("查询商品失败: " + err.Error())
+			}
+			if product == nil {
+				return apperrors.NewError(apperrors.CodeProductNotFound, "商品不存在")
+			}
+
+			if err := productRepoTx.Delete(ctx, req.ID); err != nil {
+				return apperrors.NewInternalError("删除商品失败: " + err.Error())
+			}
+
+			payloadBytes, _ := json.Marshal(map[string]any{"product_id": req.ID})
+			payload := string(payloadBytes)
+			evt := &outbox.Event{
+				AggregateType: "product",
+				AggregateID:   fmt.Sprintf("%d", req.ID),
+				EventType:     outbox.EventProductDeleted,
+				Payload:       &payload,
+				Status:        outbox.StatusPending,
+			}
+			return l.outboxRepo.CreateInTx(ctx, tx, evt)
+		}); err != nil {
+			return nil, err
+		}
+
+		// 清除相关缓存
+		if l.cache != nil {
+			cacheKey := cache.BuildKey(cache.KeyPrefixProductDetail, req.ID)
+			_ = l.cache.Delete(ctx, cacheKey)
+			_ = l.cache.DeletePattern(ctx, cache.KeyPrefixProductList+"*")
+		}
+
+		return &DeleteProductResponse{}, nil
+	}
+
+	if req.ID == 0 {
+		return nil, apperrors.NewInvalidParamError("商品ID不能为空")
+	}
+
+	// 检查商品是否存在
+	product, err := l.productRepo.GetByID(ctx, req.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewError(apperrors.CodeProductNotFound, "商品不存在")
+		}
+		return nil, apperrors.NewInternalError("查询商品失败: " + err.Error())
+	}
+	if product == nil {
+		return nil, apperrors.NewError(apperrors.CodeProductNotFound, "商品不存在")
+	}
+
+	// 删除商品（软删除）
+	if err := l.productRepo.Delete(ctx, req.ID); err != nil {
+		return nil, apperrors.NewInternalError("删除商品失败: " + err.Error())
+	}
+
+	// 清除相关缓存
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixProductDetail, req.ID)
+		_ = l.cache.Delete(ctx, cacheKey)
+		// 清除所有商品列表缓存
+		_ = l.cache.DeletePattern(ctx, cache.KeyPrefixProductList+"*")
+	}
+
+	return &DeleteProductResponse{}, nil
+}
+
+// ============================================
+// 分类CRUD操作
+// ============================================
+
+// GetCategoryRequest 获取类目详情请求
+type GetCategoryRequest struct {
+	ID uint64
+}
+
+// GetCategoryResponse 获取类目详情响应
+type GetCategoryResponse struct {
+	Category *model.Category
+}
+
+// GetCategory 获取类目详情
+func (l *ProductLogic) GetCategory(ctx context.Context, req *GetCategoryRequest) (*GetCategoryResponse, error) {
+	if l.categoryRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+
+	if req.ID == 0 {
+		return nil, apperrors.NewInvalidParamError("类目ID不能为空")
+	}
+
+	category, err := l.categoryRepo.GetByID(ctx, req.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewError(apperrors.CodeCategoryNotFound, "类目不存在")
+		}
+		return nil, apperrors.NewInternalError("查询类目失败: " + err.Error())
+	}
+
+	return &GetCategoryResponse{
+		Category: category,
+	}, nil
+}
+
+// CreateCategoryRequest 创建类目请求
+type CreateCategoryRequest struct {
+	ParentID    uint64
+	Name        string
+	Level       int8
+	Sort        int
+	Icon        string
+	IconLocal   string
+	Image       string
+	ImageLocal  string
+	Description string
+	Status      int8
+}
+
+// CreateCategoryResponse 创建类目响应
+type CreateCategoryResponse struct {
+	Category *model.Category
+}
+
+// CreateCategory 创建类目（管理后台）
+func (l *ProductLogic) CreateCategory(ctx context.Context, req *CreateCategoryRequest) (*CreateCategoryResponse, error) {
+	if l.categoryRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+
+	// 参数验证
+	if req.Name == "" {
+		return nil, apperrors.NewInvalidParamError("类目名称不能为空")
+	}
+	if req.Level <= 0 {
+		req.Level = 1 // 默认一级分类
+	}
+
+	// 如果指定了父类目，验证父类目是否存在
+	if req.ParentID > 0 {
+		parent, err := l.categoryRepo.GetByID(ctx, req.ParentID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, apperrors.NewError(apperrors.CodeCategoryNotFound, "父类目不存在")
+			}
+			return nil, apperrors.NewInternalError("查询父类目失败: " + err.Error())
+		}
+		// 自动设置层级为父类目层级+1
+		if req.Level <= parent.Level {
+			req.Level = parent.Level + 1
+		}
+	} else {
+		req.ParentID = 0 // 确保顶级分类的parent_id为0
+		req.Level = 1
+	}
+
+	// 创建类目
+	now := time.Now()
+	category := &model.Category{
+		ParentID:    req.ParentID,
+		Name:        req.Name,
+		Level:       req.Level,
+		Sort:        req.Sort,
+		Icon:        req.Icon,
+		IconLocal:   req.IconLocal,
+		Image:       req.Image,
+		ImageLocal:  req.ImageLocal,
+		Description: req.Description,
+		Status:      req.Status,
+		CreatedAt:   now,
+		UpdatedAt:   now,
+	}
+
+	if err := l.categoryRepo.Create(ctx, category); err != nil {
+		return nil, apperrors.NewInternalError("创建类目失败: " + err.Error())
+	}
+
+	// 清除类目树缓存（清除所有 status 的缓存）
+	l.clearCategoryTreeCache(ctx)
+
+	return &CreateCategoryResponse{
+		Category: category,
+	}, nil
+}
+
+// UpdateCategoryRequest 更新类目请求
+type UpdateCategoryRequest struct {
+	ID          uint64
+	ParentID    uint64
+	Name        string
+	Level       int8
+	Sort        int
+	Icon        string
+	IconLocal   string
+	Image       string
+	ImageLocal  string
+	Description string
+	Status      int8
+}
+
+// UpdateCategoryResponse 更新类目响应
+type UpdateCategoryResponse struct {
+	Category *model.Category
+}
+
+// UpdateCategory 更新类目（管理后台）
+func (l *ProductLogic) UpdateCategory(ctx context.Context, req *UpdateCategoryRequest) (*UpdateCategoryResponse, error) {
+	if l.categoryRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+
+	if req.ID == 0 {
+		return nil, apperrors.NewInvalidParamError("类目ID不能为空")
+	}
+
+	// 获取现有类目
+	category, err := l.categoryRepo.GetByID(ctx, req.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewError(apperrors.CodeCategoryNotFound, "类目不存在")
+		}
+		return nil, apperrors.NewInternalError("查询类目失败: " + err.Error())
+	}
+
+	// 更新字段
+	if req.Name != "" {
+		category.Name = req.Name
+	}
+	if req.ParentID > 0 {
+		// 验证父类目是否存在
+		parent, err := l.categoryRepo.GetByID(ctx, req.ParentID)
+		if err != nil {
+			if errors.Is(err, gorm.ErrRecordNotFound) {
+				return nil, apperrors.NewError(apperrors.CodeCategoryNotFound, "父类目不存在")
+			}
+			return nil, apperrors.NewInternalError("查询父类目失败: " + err.Error())
+		}
+		// 防止将类目设置为自己的子类目（简单检查，实际应该递归检查）
+		if parent.ParentID == req.ID {
+			return nil, apperrors.NewInvalidParamError("不能将类目设置为自己的子类目")
+		}
+		category.ParentID = req.ParentID
+		if req.Level > 0 {
+			category.Level = req.Level
+		} else {
+			category.Level = parent.Level + 1
+		}
+	} else if req.Level > 0 {
+		category.Level = req.Level
+	}
+	if req.Sort > 0 {
+		category.Sort = req.Sort
+	}
+	if req.Icon != "" {
+		category.Icon = req.Icon
+	}
+	if req.IconLocal != "" {
+		category.IconLocal = req.IconLocal
+	}
+	if req.Image != "" {
+		category.Image = req.Image
+	}
+	if req.ImageLocal != "" {
+		category.ImageLocal = req.ImageLocal
+	}
+	if req.Description != "" {
+		category.Description = req.Description
+	}
+	if req.Status >= 0 {
+		category.Status = req.Status
+	}
+
+	category.UpdatedAt = time.Now()
+
+	if err := l.categoryRepo.Update(ctx, category); err != nil {
+		return nil, apperrors.NewInternalError("更新类目失败: " + err.Error())
+	}
+
+	// 清除类目树缓存（清除所有 status 的缓存）
+	l.clearCategoryTreeCache(ctx)
+
+	return &UpdateCategoryResponse{
+		Category: category,
+	}, nil
+}
+
+// DeleteCategoryRequest 删除类目请求
+type DeleteCategoryRequest struct {
+	ID uint64
+}
+
+// DeleteCategoryResponse 删除类目响应
+type DeleteCategoryResponse struct {
+}
+
+// DeleteCategory 删除类目（管理后台）
+func (l *ProductLogic) DeleteCategory(ctx context.Context, req *DeleteCategoryRequest) (*DeleteCategoryResponse, error) {
+	if l.categoryRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+
+	if req.ID == 0 {
+		return nil, apperrors.NewInvalidParamError("类目ID不能为空")
+	}
+
+	// 检查类目是否存在
+	_, err := l.categoryRepo.GetByID(ctx, req.ID)
+	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewError(apperrors.CodeCategoryNotFound, "类目不存在")
+		}
+		return nil, apperrors.NewInternalError("查询类目失败: " + err.Error())
+	}
+
+	// 检查是否有子类目
+	children, err := l.categoryRepo.GetByParentID(ctx, req.ID)
+	if err != nil {
+		return nil, apperrors.NewInternalError("查询子类目失败: " + err.Error())
+	}
+	if len(children) > 0 {
+		return nil, apperrors.NewInvalidParamError("该类目下存在子类目，无法删除")
+	}
+
+	// 检查是否有商品使用该类目
+	if l.productRepo != nil {
+		// 这里可以添加检查商品是否使用该类目的逻辑
+		// 暂时允许删除，实际应该检查
+	}
+
+	// 删除类目
+	if err := l.categoryRepo.Delete(ctx, req.ID); err != nil {
+		return nil, apperrors.NewInternalError("删除类目失败: " + err.Error())
+	}
+
+	// 清除类目树缓存（清除所有 status 的缓存）
+	l.clearCategoryTreeCache(ctx)
+
+	return &DeleteCategoryResponse{}, nil
+}
+
+// ==================== Banner 相关方法 ====================
+
+// ListBannersRequest 获取Banner列表请求
+type ListBannersRequest struct {
+	Status int8
+	Limit  int
+}
+
+// ListBannersResponse 获取Banner列表响应
+type ListBannersResponse struct {
+	Banners []*model.Banner
+}
+
+// ListBanners 获取Banner列表
+func (l *ProductLogic) ListBanners(ctx context.Context, req *ListBannersRequest) (*ListBannersResponse, error) {
+	if l.bannerRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+
+	banners, err := l.bannerRepo.GetAll(ctx, req.Status, req.Limit)
+	if err != nil {
+		return nil, apperrors.NewInternalError("查询Banner列表失败: " + err.Error())
+	}
+
+	return &ListBannersResponse{
+		Banners: banners,
+	}, nil
+}
+
+// GetBannerRequest 获取Banner详情请求
+type GetBannerRequest struct {
+	ID uint64
+}
+
+// GetBannerResponse 获取Banner详情响应
+type GetBannerResponse struct {
+	Banner *model.Banner
+}
+
+// GetBanner 获取Banner详情
+func (l *ProductLogic) GetBanner(ctx context.Context, req *GetBannerRequest) (*GetBannerResponse, error) {
+	if l.bannerRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+
+	if req.ID == 0 {
+		return nil, apperrors.NewInvalidParamError("Banner ID不能为空")
+	}
+
+	banner, err := l.bannerRepo.GetByID(ctx, req.ID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound || errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewError(apperrors.CodeNotFound, "Banner不存在")
+		}
+		return nil, apperrors.NewInternalError("查询Banner失败: " + err.Error())
+	}
+
+	return &GetBannerResponse{
+		Banner: banner,
+	}, nil
+}
+
+// CreateBannerRequest 创建Banner请求
+type CreateBannerRequest struct {
+	Title       string
+	Description string
+	Image       string
+	ImageLocal  string
+	Link        string
+	LinkType    int8
+	Sort        int
+	Status      int8
+	StartTime   *time.Time
+	EndTime     *time.Time
+}
+
+// CreateBannerResponse 创建Banner响应
+type CreateBannerResponse struct {
+	Banner *model.Banner
+}
+
+// CreateBanner 创建Banner
+func (l *ProductLogic) CreateBanner(ctx context.Context, req *CreateBannerRequest) (*CreateBannerResponse, error) {
+	if l.bannerRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+
+	if req.Image == "" && req.ImageLocal == "" {
+		return nil, apperrors.NewInvalidParamError("封面图片不能为空")
+	}
+
+	banner := &model.Banner{
+		Title:       req.Title,
+		Description: req.Description,
+		Image:       req.Image,
+		ImageLocal:  req.ImageLocal,
+		Link:        req.Link,
+		LinkType:    req.LinkType,
+		Sort:        req.Sort,
+		Status:      req.Status,
+		StartTime:   req.StartTime,
+		EndTime:     req.EndTime,
+	}
+
+	if err := l.bannerRepo.Create(ctx, banner); err != nil {
+		return nil, apperrors.NewInternalError("创建Banner失败: " + err.Error())
+	}
+
+	return &CreateBannerResponse{
+		Banner: banner,
+	}, nil
+}
+
+// UpdateBannerRequest 更新Banner请求
+type UpdateBannerRequest struct {
+	ID          uint64
+	Title       string
+	Description string
+	Image       string
+	ImageLocal  string
+	Link        string
+	LinkType    int8
+	Sort        int
+	Status      int8
+	StartTime   *time.Time
+	EndTime     *time.Time
+}
+
+// UpdateBannerResponse 更新Banner响应
+type UpdateBannerResponse struct {
+	Banner *model.Banner
+}
+
+// UpdateBanner 更新Banner
+func (l *ProductLogic) UpdateBanner(ctx context.Context, req *UpdateBannerRequest) (*UpdateBannerResponse, error) {
+	if l.bannerRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+
+	if req.ID == 0 {
+		return nil, apperrors.NewInvalidParamError("Banner ID不能为空")
+	}
+
+	banner, err := l.bannerRepo.GetByID(ctx, req.ID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound || errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewError(apperrors.CodeNotFound, "Banner不存在")
+		}
+		return nil, apperrors.NewInternalError("查询Banner失败: " + err.Error())
+	}
+
+	// 更新字段
+	if req.Title != "" {
+		banner.Title = req.Title
+	}
+	if req.Description != "" {
+		banner.Description = req.Description
+	}
+	if req.Image != "" {
+		banner.Image = req.Image
+	}
+	if req.ImageLocal != "" {
+		banner.ImageLocal = req.ImageLocal
+	}
+	if req.Link != "" {
+		banner.Link = req.Link
+	}
+	if req.LinkType >= 0 {
+		banner.LinkType = req.LinkType
+	}
+	if req.Sort > 0 {
+		banner.Sort = req.Sort
+	}
+	if req.Status >= 0 {
+		banner.Status = req.Status
+	}
+	if req.StartTime != nil {
+		banner.StartTime = req.StartTime
+	}
+	if req.EndTime != nil {
+		banner.EndTime = req.EndTime
+	}
+
+	banner.UpdatedAt = time.Now()
+
+	if err := l.bannerRepo.Update(ctx, banner); err != nil {
+		return nil, apperrors.NewInternalError("更新Banner失败: " + err.Error())
+	}
+
+	return &UpdateBannerResponse{
+		Banner: banner,
+	}, nil
+}
+
+// DeleteBannerRequest 删除Banner请求
+type DeleteBannerRequest struct {
+	ID uint64
+}
+
+// DeleteBannerResponse 删除Banner响应
+type DeleteBannerResponse struct {
+}
+
+// DeleteBanner 删除Banner
+func (l *ProductLogic) DeleteBanner(ctx context.Context, req *DeleteBannerRequest) (*DeleteBannerResponse, error) {
+	if l.bannerRepo == nil {
+		return nil, apperrors.NewInternalError("数据库连接未初始化")
+	}
+
+	if req.ID == 0 {
+		return nil, apperrors.NewInvalidParamError("Banner ID不能为空")
+	}
+
+	// 检查Banner是否存在
+	_, err := l.bannerRepo.GetByID(ctx, req.ID)
+	if err != nil {
+		if err == gorm.ErrRecordNotFound || errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewError(apperrors.CodeNotFound, "Banner不存在")
+		}
+		return nil, apperrors.NewInternalError("查询Banner失败: " + err.Error())
+	}
+
+	// 删除Banner
+	if err := l.bannerRepo.Delete(ctx, req.ID); err != nil {
+		return nil, apperrors.NewInternalError("删除Banner失败: " + err.Error())
+	}
+
+	return &DeleteBannerResponse{}, nil
 }
