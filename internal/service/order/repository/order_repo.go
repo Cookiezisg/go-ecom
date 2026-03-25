@@ -7,7 +7,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"ecommerce_system/internal/service/order/model"
+	"ecommerce-system/internal/service/order/model"
 )
 
 // OrderRepository 订单数据访问接口
