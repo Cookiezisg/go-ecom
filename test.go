@@ -2,213 +2,275 @@ package service
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"time"
 
-	"github.com/zeromicro/go-zero/core/logx"
-	"gorm.io/gorm"
-
-	"ecommerce-system/internal/pkg/mq"
-	"ecommerce-system/internal/service/order/model"
-	"ecommerce-system/internal/service/order/repository"
+	"ecommerce-system/internal/pkg/cache"
+	apperrors "ecommerce-system/internal/pkg/errors"
+	"ecommerce-system/internal/service/user/model"
+	"ecommerce-system/internal/service/user/repository"
 )
 
-// seckillActivitySnapshot 用于读取秒杀活动 + SKU 的快照信息
-type seckillActivitySnapshot struct {
-	SeckillPrice  float64 `gorm:"column:seckill_price"`
-	OriginalPrice float64 `gorm:"column:original_price"`
-	SkuName       string  `gorm:"column:sku_name"`
-	SkuImage      string  `gorm:"column:sku_image"`
-	ProductID     uint64  `gorm:"column:product_id"`
+// AddressLogic 地址业务逻辑
+type AddressLogic struct {
+	addressRepo repository.AddressRepository
+	cache       *cache.CacheOperations
 }
 
-// SeckillMessage 秒杀消息结构
-type SeckillMessage struct {
-	UserID    int64 `json:"user_id"`
-	SkuID     int64 `json:"sku_id"`
-	Quantity  int   `json:"quantity"`
-	Timestamp int64 `json:"timestamp"`
-}
-
-// SeckillConsumer 秒杀订单消费者
-type SeckillConsumer struct {
-	orderRepo     repository.OrderRepository
-	orderItemRepo repository.OrderItemRepository
-	db            *gorm.DB
-}
-
-// NewSeckillConsumer 创建秒杀消费者
-func NewSeckillConsumer(orderRepo repository.OrderRepository, orderItemRepo repository.OrderItemRepository, db *gorm.DB) *SeckillConsumer {
-	return &SeckillConsumer{
-		orderRepo:     orderRepo,
-		orderItemRepo: orderItemRepo,
-		db:            db,
+// NewAddressLogic 创建地址业务逻辑
+func NewAddressLogic(addressRepo repository.AddressRepository, cache *cache.CacheOperations) *AddressLogic {
+	return &AddressLogic{
+		addressRepo: addressRepo,
+		cache:       cache,
 	}
 }
 
-// Consume 消费秒杀消息
-func (c *SeckillConsumer) Consume(ctx context.Context, message *mq.Message) error {
-	if c.db == nil {
-		return fmt.Errorf("数据库未初始化，无法消费秒杀订单消息")
+// GetAddressListRequest 获取地址列表请求
+type GetAddressListRequest struct {
+	UserID uint64
+}
+
+// GetAddressListResponse 获取地址列表响应
+type GetAddressListResponse struct {
+	Addresses []*model.Address
+}
+
+// GetAddressList 获取用户地址列表（带缓存）
+func (l *AddressLogic) GetAddressList(ctx context.Context, req *GetAddressListRequest) (*GetAddressListResponse, error) {
+	if req.UserID == 0 {
+		return nil, apperrors.NewInvalidParamError("用户ID不能为空")
 	}
 
-	// 解析消息数据
-	var seckillMsg SeckillMessage
-	dataBytes, err := json.Marshal(message.Data)
-	if err != nil {
-		return fmt.Errorf("序列化消息数据失败: %w", err)
-	}
-	if err := json.Unmarshal(dataBytes, &seckillMsg); err != nil {
-		return fmt.Errorf("解析秒杀消息失败: %w", err)
-	}
-
-	logx.Infof("收到秒杀消息: user_id=%d, sku_id=%d, quantity=%d",
-		seckillMsg.UserID, seckillMsg.SkuID, seckillMsg.Quantity)
-
-	// 幂等性校验：检查是否已经创建过订单
-	exists, err := c.checkOrderExists(ctx, seckillMsg.UserID, seckillMsg.SkuID)
-	if err != nil {
-		logx.Errorf("检查订单是否存在失败: %v", err)
-		return err
-	}
-	if exists {
-		logx.Infof("订单已存在，跳过处理: user_id=%d, sku_id=%d", seckillMsg.UserID, seckillMsg.SkuID)
-		return nil // 幂等，直接返回成功
-	}
-
-	// 查询秒杀活动价格与商品信息快照
-	activitySnapshot, err := c.getSeckillSnapshot(ctx, seckillMsg.SkuID)
-	if err != nil {
-		logx.Errorf("查询秒杀活动价格失败: %v", err)
-	}
-
-	price := 0.0
-	if activitySnapshot != nil {
-		price = activitySnapshot.SeckillPrice
-	}
-	totalAmount := price * float64(seckillMsg.Quantity)
-
-	// 创建订单
-	orderNo := c.generateOrderNo(ctx)
-	order := &model.Order{
-		OrderNo:         orderNo,
-		UserID:          uint64(seckillMsg.UserID),
-		OrderType:       2,                        // 秒杀订单
-		Status:          model.OrderStatusPending, // 待支付
-		TotalAmount:     totalAmount,
-		PayAmount:       totalAmount,
-		DiscountAmount:  0,
-		FreightAmount:   0,
-		ReceiverName:    "", // 需要从地址服务获取
-		ReceiverPhone:   "",
-		ReceiverAddress: "",
-	}
-
-	// 开启事务
-	tx := c.db.Begin()
-	defer func() {
-		if r := recover(); r != nil {
-			tx.Rollback()
-		}
-	}()
-
-	// 创建订单
-	if err := tx.Create(order).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("创建订单失败: %w", err)
-	}
-
-	// 使用秒杀活动快照填充订单项
-	orderItem := &model.OrderItem{
-		OrderID:     order.ID,
-		OrderNo:     orderNo,
-		ProductID:   0, // 可选：需要从商品服务获取
-		ProductName: fmt.Sprintf("秒杀商品-%d", seckillMsg.SkuID),
-		SkuID:       uint64(seckillMsg.SkuID),
-		SkuCode:     "",
-		SkuName:     fmt.Sprintf("秒杀SKU-%d", seckillMsg.SkuID),
-		Price:       price,
-		Quantity:    seckillMsg.Quantity,
-		TotalAmount: totalAmount,
-	}
-
-	if activitySnapshot != nil {
-		if activitySnapshot.ProductID != 0 {
-			orderItem.ProductID = activitySnapshot.ProductID
-		}
-		if activitySnapshot.SkuName != "" {
-			orderItem.SkuName = activitySnapshot.SkuName
-			orderItem.ProductName = activitySnapshot.SkuName
-		}
-		if activitySnapshot.SkuImage != "" {
-			orderItem.SkuImage = &activitySnapshot.SkuImage
+	// 尝试从缓存获取
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixUserAddress, req.UserID)
+		var addresses []*model.Address
+		if err := l.cache.GetJSON(ctx, cacheKey, &addresses); err == nil {
+			return &GetAddressListResponse{Addresses: addresses}, nil
 		}
 	}
 
-	if err := tx.Create(orderItem).Error; err != nil {
-		tx.Rollback()
-		return fmt.Errorf("创建订单项失败: %w", err)
-	}
-
-	// 提交事务
-	if err := tx.Commit().Error; err != nil {
-		return fmt.Errorf("提交事务失败: %w", err)
-	}
-
-	logx.Infof("秒杀订单创建成功: order_no=%s, user_id=%d, sku_id=%d",
-		orderNo, seckillMsg.UserID, seckillMsg.SkuID)
-
-	return nil
-}
-
-// checkOrderExists 检查订单是否存在（幂等性校验）
-func (c *SeckillConsumer) checkOrderExists(ctx context.Context, userID, skuID int64) (bool, error) {
-	if c.db == nil {
-		return false, fmt.Errorf("数据库未初始化")
-	}
-
-	// 查询该用户是否已经为该SKU创建过秒杀订单
-	var count int64
-	err := c.db.WithContext(ctx).
-		Model(&model.Order{}).
-		Joins("JOIN order_item ON orders.id = order_item.order_id").
-		Where("orders.user_id = ? AND order_item.sku_id = ? AND orders.order_type = ?",
-			userID, skuID, 2). // order_type = 2 表示秒杀订单
-		Count(&count).Error
-
+	// 从数据库查询
+	addresses, err := l.addressRepo.GetByUserID(ctx, req.UserID)
 	if err != nil {
-		return false, err
+		return nil, apperrors.NewInternalError("查询地址列表失败: " + err.Error())
 	}
 
-	return count > 0, nil
+	// 写入缓存
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixUserAddress, req.UserID)
+		_ = l.cache.Set(ctx, cacheKey, addresses, 1*time.Hour)
+	}
+
+	return &GetAddressListResponse{
+		Addresses: addresses,
+	}, nil
 }
 
-// generateOrderNo 生成订单号
-func (c *SeckillConsumer) generateOrderNo(ctx context.Context) string {
-	// 秒杀订单号格式：SECKILL + 时间戳 + 随机数
-	return fmt.Sprintf("SECKILL%d%06d", time.Now().Unix(), time.Now().UnixNano()%1000000)
+// AddAddressRequest 添加地址请求
+type AddAddressRequest struct {
+	UserID        uint64
+	ReceiverName  string
+	ReceiverPhone string
+	Province      string
+	City          string
+	District      string
+	Detail        string
+	PostalCode    string
+	IsDefault     int8
 }
 
-// getSeckillSnapshot 获取秒杀活动的价格和商品信息快照
-func (c *SeckillConsumer) getSeckillSnapshot(ctx context.Context, skuID int64) (*seckillActivitySnapshot, error) {
-	var snap seckillActivitySnapshot
-	err := c.db.WithContext(ctx).
-		Table("seckill_activity sa").
-		Joins("LEFT JOIN sku s ON sa.sku_id = s.id").
-		// gorm.Select 需要单个字符串（多个字符串会被当成占位参数，导致字段取不到）
-		Select("sa.seckill_price AS seckill_price, s.original_price AS original_price, s.name AS sku_name, s.image AS sku_image, s.product_id AS product_id").
-		Where("sa.sku_id = ?", skuID).
-		Where("sa.status = 1"). // 已启用
-		Order("sa.id DESC").
-		Limit(1).
-		Scan(&snap).Error
+// AddAddressResponse 添加地址响应
+type AddAddressResponse struct {
+	Address *model.Address
+}
+
+// AddAddress 添加地址
+func (l *AddressLogic) AddAddress(ctx context.Context, req *AddAddressRequest) (*AddAddressResponse, error) {
+	// 参数验证
+	if req.UserID == 0 {
+		return nil, apperrors.NewInvalidParamError("用户ID不能为空")
+	}
+	if req.ReceiverName == "" {
+		return nil, apperrors.NewInvalidParamError("收货人姓名不能为空")
+	}
+	if req.ReceiverPhone == "" {
+		return nil, apperrors.NewInvalidParamError("收货人电话不能为空")
+	}
+	if req.Province == "" || req.City == "" || req.District == "" {
+		return nil, apperrors.NewInvalidParamError("地址信息不完整")
+	}
+	if req.Detail == "" {
+		return nil, apperrors.NewInvalidParamError("详细地址不能为空")
+	}
+
+	// 如果设置为默认地址，先取消其他默认地址
+	if req.IsDefault == 1 {
+		if err := l.addressRepo.SetDefault(ctx, req.UserID, 0); err != nil {
+			// 如果设置失败，继续创建地址，但不设置为默认
+			req.IsDefault = 0
+		}
+	}
+
+	address := &model.Address{
+		UserID:        req.UserID,
+		ReceiverName:  req.ReceiverName,
+		ReceiverPhone: req.ReceiverPhone,
+		Province:      req.Province,
+		City:          req.City,
+		District:      req.District,
+		Detail:        req.Detail,
+		PostalCode:    req.PostalCode,
+		IsDefault:     req.IsDefault,
+	}
+
+	if err := l.addressRepo.Create(ctx, address); err != nil {
+		return nil, apperrors.NewInternalError("创建地址失败: " + err.Error())
+	}
+
+	// 删除缓存
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixUserAddress, req.UserID)
+		_ = l.cache.Delete(ctx, cacheKey)
+	}
+
+	return &AddAddressResponse{
+		Address: address,
+	}, nil
+}
+
+// UpdateAddressRequest 更新地址请求
+type UpdateAddressRequest struct {
+	ID            uint64
+	UserID        uint64
+	ReceiverName  string
+	ReceiverPhone string
+	Province      string
+	City          string
+	District      string
+	Detail        string
+	PostalCode    string
+	IsDefault     int8
+}
+
+// UpdateAddressResponse 更新地址响应
+type UpdateAddressResponse struct {
+	Address *model.Address
+}
+
+// UpdateAddress 更新地址
+func (l *AddressLogic) UpdateAddress(ctx context.Context, req *UpdateAddressRequest) (*UpdateAddressResponse, error) {
+	// 参数验证
+	if req.ID == 0 {
+		return nil, apperrors.NewInvalidParamError("地址ID不能为空")
+	}
+	if req.UserID == 0 {
+		return nil, apperrors.NewInvalidParamError("用户ID不能为空")
+	}
+
+	// 获取原地址
+	address, err := l.addressRepo.GetByID(ctx, req.ID)
 	if err != nil {
-		return nil, err
+		return nil, apperrors.NewInternalError("查询地址失败: " + err.Error())
 	}
-	// 如果所有字段都是零值，认为未查到
-	if snap.SeckillPrice == 0 && snap.OriginalPrice == 0 && snap.SkuName == "" && snap.SkuImage == "" {
-		return nil, nil
+	if address == nil {
+		return nil, apperrors.NewError(apperrors.CodeNotFound, "地址不存在")
 	}
-	return &snap, nil
+
+	// 验证地址属于该用户
+	if address.UserID != req.UserID {
+		return nil, apperrors.NewError(apperrors.CodeForbidden, "无权操作此地址")
+	}
+
+	// 更新地址信息
+	if req.ReceiverName != "" {
+		address.ReceiverName = req.ReceiverName
+	}
+	if req.ReceiverPhone != "" {
+		address.ReceiverPhone = req.ReceiverPhone
+	}
+	if req.Province != "" {
+		address.Province = req.Province
+	}
+	if req.City != "" {
+		address.City = req.City
+	}
+	if req.District != "" {
+		address.District = req.District
+	}
+	if req.Detail != "" {
+		address.Detail = req.Detail
+	}
+	if req.PostalCode != "" {
+		address.PostalCode = req.PostalCode
+	}
+
+	// 如果设置为默认地址
+	if req.IsDefault == 1 && address.IsDefault != 1 {
+		if err := l.addressRepo.SetDefault(ctx, req.UserID, req.ID); err != nil {
+			return nil, apperrors.NewInternalError("设置默认地址失败: " + err.Error())
+		}
+		address.IsDefault = 1
+	}
+
+	if err := l.addressRepo.Update(ctx, address); err != nil {
+		return nil, apperrors.NewInternalError("更新地址失败: " + err.Error())
+	}
+
+	// 删除缓存
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixUserAddress, req.UserID)
+		_ = l.cache.Delete(ctx, cacheKey)
+	}
+
+	return &UpdateAddressResponse{
+		Address: address,
+	}, nil
+}
+
+// DeleteAddressRequest 删除地址请求
+type DeleteAddressRequest struct {
+	ID     uint64
+	UserID uint64
+}
+
+// DeleteAddressResponse 删除地址响应
+type DeleteAddressResponse struct {
+}
+
+// DeleteAddress 删除地址
+func (l *AddressLogic) DeleteAddress(ctx context.Context, req *DeleteAddressRequest) (*DeleteAddressResponse, error) {
+	// 参数验证
+	if req.ID == 0 {
+		return nil, apperrors.NewInvalidParamError("地址ID不能为空")
+	}
+	if req.UserID == 0 {
+		return nil, apperrors.NewInvalidParamError("用户ID不能为空")
+	}
+
+	// 获取原地址
+	address, err := l.addressRepo.GetByID(ctx, req.ID)
+	if err != nil {
+		return nil, apperrors.NewInternalError("查询地址失败: " + err.Error())
+	}
+	if address == nil {
+		return nil, apperrors.NewError(apperrors.CodeNotFound, "地址不存在")
+	}
+
+	// 验证地址属于该用户
+	if address.UserID != req.UserID {
+		return nil, apperrors.NewError(apperrors.CodeForbidden, "无权操作此地址")
+	}
+
+	// 删除地址
+	if err := l.addressRepo.Delete(ctx, req.ID); err != nil {
+		return nil, apperrors.NewInternalError("删除地址失败: " + err.Error())
+	}
+
+	// 删除缓存
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixUserAddress, req.UserID)
+		_ = l.cache.Delete(ctx, cacheKey)
+	}
+
+	return &DeleteAddressResponse{}, nil
 }
