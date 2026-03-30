@@ -6,7 +6,7 @@ import (
 
 	"gorm.io/gorm"
 
-	"ecommerce_system/internal/service/seckill/model"
+	"ecommerce-system/internal/service/seckill/model"
 )
 
 type ListSeckillActivitiesRequest struct {
