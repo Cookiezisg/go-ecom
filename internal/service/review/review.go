@@ -7,9 +7,9 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 
-	"ecommerce_system/internal/pkg/database"
-	"ecommerce_system/internal/pkg/mongodb"
-	"ecommerce_system/internal/service/review/repository"
+	"ecommerce-system/internal/pkg/database"
+	"ecommerce-system/internal/pkg/mongodb"
+	"ecommerce-system/internal/service/review/repository"
 )
 
 // ServiceContext 服务上下文

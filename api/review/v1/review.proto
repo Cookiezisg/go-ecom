@@ -118,5 +118,3 @@ message GetReviewStatsResponse {
   string message = 2;
   ReviewStats data = 3;
 }
-
-
