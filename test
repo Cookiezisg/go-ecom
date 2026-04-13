@@ -10,9 +10,9 @@ import (
 	"google.golang.org/grpc"
 	"google.golang.org/grpc/reflection"
 
-	userpb "ecommerce-system/api/user/v1"
-	"ecommerce-system/internal/service/user"
-	"ecommerce-system/internal/service/user/interceptor"
+	"ecommerce_system/internal/service/user"
+	"ecommerce_system/internal/service/user/interceptor"
+	userpb "ecommerce_system/api/user/v1"
 )
 
 var configFile = flag.String("f", "configs/dev/config.yaml", "配置文件路径")
@@ -53,3 +53,4 @@ func main() {
 	fmt.Printf("用户服务启动在 %s\\n", c.ListenOn)
 	s.Start()
 }
+

@@ -3,7 +3,7 @@ package file
 import "github.com/zeromicro/go-zero/zrpc"
 
 type Config struct {
-	zrpc.RpcClientConf
+	zrpc.RpcServerConf
 	Storage StorageConfig
 }
 
