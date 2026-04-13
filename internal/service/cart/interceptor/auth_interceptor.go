@@ -29,9 +29,7 @@ func AuthInterceptor(jwtSecret string) grpc.UnaryServerInterceptor {
 
 		// 解析 Bearer token
 		token := authHeaders[0]
-		if strings.HasPrefix(token, "Bearer ") {
-			token = strings.TrimPrefix(token, "Bearer ")
-		}
+		token = strings.TrimPrefix(token, "Bearer ")
 
 		// 解析 JWT token
 		claims, err := utils.ParseToken(token, jwtSecret)
