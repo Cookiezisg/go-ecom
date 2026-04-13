@@ -1,16 +1,10 @@
-# 商品服务配置示例
-# 复制此文件为 config.yaml 并修改相应配置
+# 支付服务配置示例
+# 复制此文件为 payment-config.yaml 并修改相应配置
 
 # 服务配置
-Name: product-service
-ListenOn: 0.0.0.0:8081
+Name: payment-service
+ListenOn: 0.0.0.0:8083
 Mode: dev
-
-# etcd 服务注册发现（开发环境可选）
-# Etcd:
-#   Hosts:
-#     - localhost:2379
-#   Key: product-service.rpc
 
 # 超时配置
 Timeout: 5000
@@ -31,7 +25,7 @@ Middlewares:
 
 # 日志配置
 Log:
-  ServiceName: product-service
+  ServiceName: payment-service
   Mode: console
   Level: debug
   Path: logs
@@ -42,7 +36,7 @@ Log:
 # Prometheus 配置
 Prometheus:
   Host: 0.0.0.0
-  Port: 9092
+  Port: 9095
   Path: /metrics
 
 # 数据库配置
@@ -64,13 +58,20 @@ BizRedis:
   Host: localhost
   Port: 6379
   Password: ""
-  Database: 0
+  Database: 3
   PoolSize: 10
   MinIdleConns: 5
 
-# Kafka 配置（用于 Outbox relay 投递）
-Kafka:
-  Brokers:
-    - localhost:9092
-  Version: "2.8.0"
+# 支付配置
+Payment:
+  WeChat:
+    AppID: ""
+    MchID: ""
+    APIKey: ""
+    NotifyURL: ""
+  Alipay:
+    AppID: ""
+    PrivateKey: ""
+    PublicKey: ""
+    NotifyURL: ""
 

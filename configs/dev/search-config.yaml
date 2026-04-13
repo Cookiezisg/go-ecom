@@ -3,7 +3,7 @@
 
 # 服务配置
 Name: search-service
-ListenOn: 0.0.0.0:8090
+ListenOn: 0.0.0.0:8010
 Mode: dev
 
 # 超时配置
@@ -47,10 +47,32 @@ Elasticsearch:
   Password: ""
 
 # Redis配置（用于缓存）
-Redis:
+BizRedis:
   Host: localhost
   Port: 6379
   Password: ""
   Database: 6
   PoolSize: 10
   MinIdleConns: 5
+
+# 数据库配置（读取商品/SKU 快照写 ES）
+Database:
+  Driver: mysql
+  Host: localhost
+  Port: 3306
+  User: root
+  Password: "123456"
+  Database: ecommerce
+  Charset: utf8mb4
+  MaxOpenConns: 50
+  MaxIdleConns: 10
+  ConnMaxLifetime: 3600
+  ConnMaxIdleTime: 600
+
+# Kafka 配置（消费 Outbox relay 投递的消息）
+Kafka:
+  Brokers:
+    - localhost:9092
+  Version: "2.8.0"
+  ConsumerGroup: "search-service"
+

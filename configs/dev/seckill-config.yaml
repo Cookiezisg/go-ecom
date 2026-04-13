@@ -30,3 +30,4 @@ Kafka:
   Brokers:
     - 127.0.0.1:9092
   Version: 2.8.0
+

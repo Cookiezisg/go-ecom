@@ -1,16 +1,10 @@
-# 商品服务配置示例
-# 复制此文件为 config.yaml 并修改相应配置
+# 购物车服务配置示例
+# 复制此文件为 cart-config.yaml 并修改相应配置
 
 # 服务配置
-Name: product-service
-ListenOn: 0.0.0.0:8081
+Name: cart-service
+ListenOn: 0.0.0.0:8085
 Mode: dev
-
-# etcd 服务注册发现（开发环境可选）
-# Etcd:
-#   Hosts:
-#     - localhost:2379
-#   Key: product-service.rpc
 
 # 超时配置
 Timeout: 5000
@@ -31,7 +25,7 @@ Middlewares:
 
 # 日志配置
 Log:
-  ServiceName: product-service
+  ServiceName: cart-service
   Mode: console
   Level: debug
   Path: logs
@@ -42,10 +36,10 @@ Log:
 # Prometheus 配置
 Prometheus:
   Host: 0.0.0.0
-  Port: 9092
+  Port: 9094
   Path: /metrics
 
-# 数据库配置
+# 数据库配置（用于持久化备份）
 Database:
   Driver: mysql
   Host: localhost
@@ -59,18 +53,17 @@ Database:
   ConnMaxLifetime: 3600
   ConnMaxIdleTime: 600
 
-# Redis配置
+# Redis配置（主要存储）
 BizRedis:
   Host: localhost
   Port: 6379
   Password: ""
-  Database: 0
+  Database: 2
   PoolSize: 10
   MinIdleConns: 5
 
-# Kafka 配置（用于 Outbox relay 投递）
-Kafka:
-  Brokers:
-    - localhost:9092
-  Version: "2.8.0"
+# JWT配置（用于从 token 中提取 user_id）
+JWT:
+  Secret: "default-secret-key"  # 与 user-service 保持一致
+  Expire: 7200
 

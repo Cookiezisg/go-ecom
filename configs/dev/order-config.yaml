@@ -2,17 +2,17 @@ Name: order-service
 ListenOn: 0.0.0.0:8082
 Etcd:
   Hosts:
-    - localhost:2379
+    - 127.0.0.1:2379
   Key: order.rpc
 Mode: dev
 Timeout: 3000
 
 # 数据库配置
 Database:
-  Host: localhost
+  Host: 127.0.0.1
   Port: 3306
   User: root
-  Password: your_password
+  Password: "123456"
   Database: ecommerce
   Charset: utf8mb4
   MaxOpenConns: 100
@@ -21,10 +21,17 @@ Database:
   ConnMaxIdleTime: 600
 
 # Redis配置
-Redis:
-  Host: localhost
+BizRedis:
+  Host: 127.0.0.1
   Port: 6379
   Password: ""
   Database: 0
   PoolSize: 10
   MinIdleConns: 5
+
+# Kafka配置
+Kafka:
+  Brokers:
+    - 127.0.0.1:9092
+  Version: 2.8.0
+
