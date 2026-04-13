@@ -1,0 +1,276 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "logistics/v1/logistics.proto",
+    "version": "version not set"
+  },
+  "host": "localhost:8080",
+  "schemes": [
+    "http"
+  ],
+  "tags": [
+    {
+      "name": "LogisticsService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "protobufAny": {
+      "additionalProperties": {},
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "rpcStatus": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "details": {
+          "items": {
+            "$ref": "#/definitions/protobufAny",
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CalculateFreightRequest": {
+      "properties": {
+        "city": {
+          "type": "string"
+        },
+        "district": {
+          "type": "string"
+        },
+        "province": {
+          "type": "string"
+        },
+        "volume": {
+          "format": "double",
+          "type": "number"
+        },
+        "weight": {
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "v1CalculateFreightResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "freight": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateLogisticsRequest": {
+      "properties": {
+        "company_code": {
+          "type": "string"
+        },
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_no": {
+          "type": "string"
+        },
+        "receiver_address": {
+          "type": "string"
+        },
+        "receiver_name": {
+          "type": "string"
+        },
+        "receiver_phone": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateLogisticsResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Logistics"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetLogisticsRequest": {
+      "properties": {
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetLogisticsResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Logistics"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1Logistics": {
+      "properties": {
+        "company_code": {
+          "type": "string"
+        },
+        "company_name": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "logistics_no": {
+          "type": "string"
+        },
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_no": {
+          "type": "string"
+        },
+        "receiver_address": {
+          "type": "string"
+        },
+        "receiver_name": {
+          "type": "string"
+        },
+        "receiver_phone": {
+          "type": "string"
+        },
+        "sender_address": {
+          "type": "string"
+        },
+        "sender_name": {
+          "type": "string"
+        },
+        "sender_phone": {
+          "type": "string"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1QueryTrackingRequest": {
+      "properties": {
+        "logistics_no": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1QueryTrackingResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1TrackingNode"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1TrackingNode": {
+      "properties": {
+        "location": {
+          "type": "string"
+        },
+        "remark": {
+          "type": "string"
+        },
+        "status": {
+          "type": "string"
+        },
+        "time": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateLogisticsStatusRequest": {
+      "properties": {
+        "logistics_no": {
+          "type": "string"
+        },
+        "remark": {
+          "type": "string"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateLogisticsStatusResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

@@ -7,6 +7,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 
 	"gopkg.in/yaml.v3"
@@ -42,6 +43,25 @@ type SwaggerDoc struct {
 	Definitions map[string]interface{}            `json:"definitions"`
 }
 
+type ProtoField struct {
+	Name     string
+	Type     string
+	Repeated bool
+	IsMap    bool
+	MapKey   string
+	MapValue string
+	Comment  string
+}
+
+type ProtoMessage struct {
+	Name   string
+	Fields []ProtoField
+}
+
+type ProtoEnum struct {
+	Name string
+}
+
 func main() {
 	// 读取 Gateway 配置
 	gatewayConfig, err := loadGatewayConfig("configs/dev/gateway.yaml")
@@ -49,13 +69,16 @@ func main() {
 		log.Fatalf("加载 Gateway 配置失败: %v", err)
 	}
 
-	// 读取现有的 Swagger JSON 文件
+	// 读取现有的 Swagger JSON 文件，收集所有处理后的文档用于合并
 	swaggerDir := "docs/swagger"
+	var allDocs []SwaggerDoc
+
 	err = filepath.Walk(swaggerDir, func(path string, info os.FileInfo, err error) error {
 		if err != nil {
 			return err
 		}
-		if !strings.HasSuffix(path, ".swagger.json") {
+		// 跳过合并输出文件自身，避免重复处理
+		if !strings.HasSuffix(path, ".swagger.json") || strings.HasSuffix(path, "all.swagger.json") {
 			return nil
 		}
 
@@ -70,23 +93,12 @@ func main() {
 			return err
 		}
 
-		// 如果 Host、BasePath、Schemes 字段为空，初始化它们
-		if swagger.Host == "" {
-			swagger.Host = ""
-		}
-		if swagger.BasePath == "" {
-			swagger.BasePath = ""
-		}
-		if swagger.Schemes == nil {
-			swagger.Schemes = []string{}
-		}
-
 		// 从路径推断服务名
-		// 例如: docs/swagger/api/cart/v1/cart.swagger.json -> cart
-		parts := strings.Split(path, "/")
+		// 例如: docs/swagger/user/v1/user.swagger.json -> user
+		parts := strings.Split(filepath.ToSlash(path), "/")
 		var serviceName string
 		for i, part := range parts {
-			if part == "api" && i+1 < len(parts) {
+			if part == "swagger" && i+1 < len(parts) {
 				serviceName = parts[i+1]
 				break
 			}
@@ -102,27 +114,41 @@ func main() {
 			}
 		}
 
-		// 生成 paths（注意：需要传递 definitions 的引用，以便可以修改）
+		if swagger.Definitions == nil {
+			swagger.Definitions = make(map[string]interface{})
+		}
+
+		protoDefs, err := loadProtoDefinitions(serviceName)
+		if err != nil {
+			log.Printf("警告: 加载 %s 的 proto definitions 失败: %v", serviceName, err)
+		} else {
+			for name, def := range protoDefs {
+				if _, exists := swagger.Definitions[name]; !exists {
+					swagger.Definitions[name] = def
+				}
+			}
+		}
+
+		// 生成 paths
 		if upstream != nil {
 			swagger.Paths = generatePaths(upstream.Mappings, swagger.Definitions, serviceName)
 		}
 
-		// 添加 host、basePath 和 schemes（Swagger 2.0 中这些字段在根级别）
 		swagger.Host = "localhost:8080"
 		swagger.BasePath = ""
 		swagger.Schemes = []string{"http"}
 
-		// 保存更新后的 Swagger JSON
+		// 保存更新后的单服务 Swagger JSON
 		output, err := json.MarshalIndent(swagger, "", "  ")
 		if err != nil {
 			return err
 		}
-
 		if err := ioutil.WriteFile(path, output, 0644); err != nil {
 			return err
 		}
 
-		fmt.Printf("✅ 已更新: %s\\n", path)
+		fmt.Printf("✅ 已更新: %s\n", path)
+		allDocs = append(allDocs, swagger)
 		return nil
 	})
 
@@ -130,7 +156,76 @@ func main() {
 		log.Fatalf("处理 Swagger 文件失败: %v", err)
 	}
 
-	fmt.Println("\\n✅ 所有 Swagger 文档已更新完成！")
+	// 合并所有服务的文档，输出 all.swagger.json
+	if len(allDocs) > 0 {
+		merged := mergeSwaggerDocs(allDocs)
+		output, err := json.MarshalIndent(merged, "", "  ")
+		if err != nil {
+			log.Fatalf("合并 Swagger 文档失败: %v", err)
+		}
+		allPath := filepath.Join(swaggerDir, "all.swagger.json")
+		if err := ioutil.WriteFile(allPath, output, 0644); err != nil {
+			log.Fatalf("写入 all.swagger.json 失败: %v", err)
+		}
+		fmt.Printf("✅ 已生成合并文档: %s\n", allPath)
+	}
+
+	fmt.Println("\n✅ 所有 Swagger 文档已更新完成！")
+}
+
+func mergeSwaggerDocs(docs []SwaggerDoc) SwaggerDoc {
+	merged := SwaggerDoc{
+		Swagger: "2.0",
+		Info: map[string]interface{}{
+			"title":   "Go Ecom API",
+			"version": "1.0",
+		},
+		Host:        "localhost:8080",
+		BasePath:    "",
+		Schemes:     []string{"http"},
+		Consumes:    []string{"application/json"},
+		Produces:    []string{"application/json"},
+		Paths:       make(map[string]map[string]interface{}),
+		Definitions: make(map[string]interface{}),
+		Tags:        []map[string]interface{}{},
+	}
+
+	tagSet := make(map[string]bool)
+	for _, doc := range docs {
+		for path, methods := range doc.Paths {
+			merged.Paths[path] = methods
+		}
+		for name, def := range doc.Definitions {
+			merged.Definitions[name] = def
+		}
+	}
+
+	// 从实际 paths 里重建 tags，避免 proto 生成的空 tag 混入
+	for _, methods := range merged.Paths {
+		for _, op := range methods {
+			opMap, ok := op.(map[string]interface{})
+			if !ok {
+				continue
+			}
+			tags, ok := opMap["tags"].([]string)
+			if !ok {
+				continue
+			}
+			for _, t := range tags {
+				if !tagSet[t] {
+					tagSet[t] = true
+					merged.Tags = append(merged.Tags, map[string]interface{}{"name": t})
+				}
+			}
+		}
+	}
+	return merged
+}
+
+// rpcServiceName 从 RPC 路径提取服务名，例如 "user.v1.UserService/Register" -> "UserService"
+func rpcServiceName(rpcPath string) string {
+	parts := strings.Split(strings.Split(rpcPath, "/")[0], ".")
+	return parts[len(parts)-1]
 }
 
 func loadGatewayConfig(path string) (*GatewayConfig, error) {
@@ -155,6 +250,9 @@ func generatePaths(mappings []Mapping, definitions map[string]interface{}, servi
 		// :id -> {id}
 		path := convertPathParams(mapping.Path)
 		method := strings.ToLower(mapping.Method)
+		if method == "options" {
+			continue
+		}
 
 		if paths[path] == nil {
 			paths[path] = make(map[string]interface{})
@@ -168,7 +266,7 @@ func generatePaths(mappings []Mapping, definitions map[string]interface{}, servi
 
 		// 构建操作对象
 		operation := map[string]interface{}{
-			"tags":        []string{strings.Split(mapping.RpcPath, ".")[0] + "Service"},
+			"tags":        []string{rpcServiceName(mapping.RpcPath)},
 			"summary":     getSummaryFromRpcName(rpcName),
 			"operationId": rpcName,
 			"consumes":    []string{"application/json"},
@@ -238,6 +336,227 @@ func convertPathParams(path string) string {
 		}
 	}
 	return strings.Join(parts, "/")
+}
+
+func loadProtoDefinitions(serviceName string) (map[string]interface{}, error) {
+	pattern := filepath.Join("api", serviceName, "*", serviceName+".proto")
+	matches, err := filepath.Glob(pattern)
+	if err != nil {
+		return nil, err
+	}
+	if len(matches) == 0 {
+		return nil, fmt.Errorf("未找到 proto 文件: %s", pattern)
+	}
+
+	protoFile := matches[0]
+	version := filepath.Base(filepath.Dir(protoFile))
+	messages, enums, err := parseProtoFile(protoFile)
+	if err != nil {
+		return nil, err
+	}
+
+	definitions := make(map[string]interface{}, len(messages))
+	for _, msg := range messages {
+		definitions[version+msg.Name] = buildMessageDefinition(msg, version, messages, enums)
+	}
+	return definitions, nil
+}
+
+func parseProtoFile(path string) (map[string]ProtoMessage, map[string]ProtoEnum, error) {
+	data, err := ioutil.ReadFile(path)
+	if err != nil {
+		return nil, nil, err
+	}
+
+	lines := strings.Split(string(data), "\n")
+	messageStartRe := regexp.MustCompile(`^\s*message\s+([A-Za-z0-9_]+)\s*\{`)
+	enumStartRe := regexp.MustCompile(`^\s*enum\s+([A-Za-z0-9_]+)\s*\{`)
+	repeatedFieldRe := regexp.MustCompile(`^\s*repeated\s+([.\w]+)\s+([A-Za-z0-9_]+)\s*=\s*\d+`)
+	mapFieldRe := regexp.MustCompile(`^\s*map<\s*([.\w]+)\s*,\s*([.\w]+)\s*>\s+([A-Za-z0-9_]+)\s*=\s*\d+`)
+	fieldRe := regexp.MustCompile(`^\s*([.\w]+)\s+([A-Za-z0-9_]+)\s*=\s*\d+`)
+
+	messages := make(map[string]ProtoMessage)
+	enums := make(map[string]ProtoEnum)
+
+	var currentMessage *ProtoMessage
+	var currentEnum *ProtoEnum
+	braceDepth := 0
+	pendingComment := ""
+
+	for _, rawLine := range lines {
+		line := stripInlineComment(rawLine)
+		trimmed := strings.TrimSpace(line)
+		comment := strings.TrimSpace(extractInlineComment(rawLine))
+
+		if trimmed == "" {
+			if comment == "" {
+				pendingComment = ""
+			}
+			continue
+		}
+
+		if strings.HasPrefix(trimmed, "//") {
+			text := strings.TrimSpace(strings.TrimPrefix(trimmed, "//"))
+			if pendingComment == "" {
+				pendingComment = text
+			} else {
+				pendingComment += " " + text
+			}
+			continue
+		}
+
+		if currentMessage == nil && currentEnum == nil {
+			if matches := messageStartRe.FindStringSubmatch(trimmed); len(matches) > 0 {
+				currentMessage = &ProtoMessage{Name: matches[1]}
+				braceDepth = 1
+				pendingComment = ""
+				continue
+			}
+			if matches := enumStartRe.FindStringSubmatch(trimmed); len(matches) > 0 {
+				currentEnum = &ProtoEnum{Name: matches[1]}
+				braceDepth = 1
+				pendingComment = ""
+				continue
+			}
+			pendingComment = ""
+			continue
+		}
+
+		braceDepth += strings.Count(trimmed, "{")
+		braceDepth -= strings.Count(trimmed, "}")
+
+		if currentMessage != nil {
+			switch {
+			case repeatedFieldRe.MatchString(trimmed):
+				matches := repeatedFieldRe.FindStringSubmatch(trimmed)
+				currentMessage.Fields = append(currentMessage.Fields, ProtoField{
+					Name:     matches[2],
+					Type:     baseProtoType(matches[1]),
+					Repeated: true,
+					Comment:  fieldComment(pendingComment, comment),
+				})
+			case mapFieldRe.MatchString(trimmed):
+				matches := mapFieldRe.FindStringSubmatch(trimmed)
+				currentMessage.Fields = append(currentMessage.Fields, ProtoField{
+					Name:     matches[3],
+					IsMap:    true,
+					MapKey:   baseProtoType(matches[1]),
+					MapValue: baseProtoType(matches[2]),
+					Comment:  fieldComment(pendingComment, comment),
+				})
+			case fieldRe.MatchString(trimmed) && !strings.HasPrefix(trimmed, "option ") && !strings.HasPrefix(trimmed, "reserved "):
+				matches := fieldRe.FindStringSubmatch(trimmed)
+				currentMessage.Fields = append(currentMessage.Fields, ProtoField{
+					Name:    matches[2],
+					Type:    baseProtoType(matches[1]),
+					Comment: fieldComment(pendingComment, comment),
+				})
+			}
+		}
+
+		pendingComment = ""
+
+		if braceDepth == 0 {
+			if currentMessage != nil {
+				messages[currentMessage.Name] = *currentMessage
+				currentMessage = nil
+			}
+			if currentEnum != nil {
+				enums[currentEnum.Name] = *currentEnum
+				currentEnum = nil
+			}
+		}
+	}
+
+	return messages, enums, nil
+}
+
+func buildMessageDefinition(msg ProtoMessage, version string, messages map[string]ProtoMessage, enums map[string]ProtoEnum) map[string]interface{} {
+	properties := make(map[string]interface{}, len(msg.Fields))
+	for _, field := range msg.Fields {
+		properties[field.Name] = buildFieldSchema(field, version, messages, enums)
+	}
+	return map[string]interface{}{
+		"type":       "object",
+		"properties": properties,
+	}
+}
+
+func buildFieldSchema(field ProtoField, version string, messages map[string]ProtoMessage, enums map[string]ProtoEnum) map[string]interface{} {
+	var schema map[string]interface{}
+
+	switch {
+	case field.IsMap:
+		schema = map[string]interface{}{
+			"type":                 "object",
+			"additionalProperties": protoTypeSchema(field.MapValue, version, messages, enums),
+		}
+	case field.Repeated:
+		schema = map[string]interface{}{
+			"type":  "array",
+			"items": protoTypeSchema(field.Type, version, messages, enums),
+		}
+	default:
+		schema = protoTypeSchema(field.Type, version, messages, enums)
+	}
+
+	if field.Comment != "" {
+		schema["description"] = field.Comment
+	}
+	return schema
+}
+
+func protoTypeSchema(fieldType, version string, messages map[string]ProtoMessage, enums map[string]ProtoEnum) map[string]interface{} {
+	switch fieldType {
+	case "string":
+		return map[string]interface{}{"type": "string"}
+	case "bool":
+		return map[string]interface{}{"type": "boolean"}
+	case "bytes":
+		return map[string]interface{}{"type": "string", "format": "byte"}
+	case "double":
+		return map[string]interface{}{"type": "number", "format": "double"}
+	case "float":
+		return map[string]interface{}{"type": "number", "format": "float"}
+	case "int32", "sint32", "sfixed32", "fixed32", "uint32":
+		return map[string]interface{}{"type": "integer", "format": "int32"}
+	case "int64", "sint64", "sfixed64", "fixed64", "uint64":
+		return map[string]interface{}{"type": "string", "format": "int64"}
+	}
+
+	if _, ok := enums[fieldType]; ok {
+		return map[string]interface{}{"type": "integer", "format": "int32"}
+	}
+	if _, ok := messages[fieldType]; ok {
+		return map[string]interface{}{"$ref": fmt.Sprintf("#/definitions/%s%s", version, fieldType)}
+	}
+	return map[string]interface{}{"type": "string"}
+}
+
+func baseProtoType(fieldType string) string {
+	parts := strings.Split(fieldType, ".")
+	return parts[len(parts)-1]
+}
+
+func stripInlineComment(line string) string {
+	if idx := strings.Index(line, "//"); idx >= 0 {
+		return line[:idx]
+	}
+	return line
+}
+
+func extractInlineComment(line string) string {
+	if idx := strings.Index(line, "//"); idx >= 0 {
+		return strings.TrimSpace(line[idx+2:])
+	}
+	return ""
+}
+
+func fieldComment(pendingComment, inlineComment string) string {
+	if inlineComment != "" {
+		return inlineComment
+	}
+	return pendingComment
 }
 
 func extractPathParams(path string) []map[string]interface{} {

@@ -1,0 +1,593 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "seckill/v1/seckill.proto",
+    "version": "version not set"
+  },
+  "host": "localhost:8080",
+  "schemes": [
+    "http"
+  ],
+  "tags": [
+    {
+      "name": "SeckillService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/seckill": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "Seckill",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SeckillRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1SeckillResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "Seckill",
+        "tags": [
+          "SeckillService"
+        ]
+      }
+    },
+    "/api/v1/seckill/activities": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ListSeckillActivities",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ListSeckillActivitiesResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "ListSeckillActivities",
+        "tags": [
+          "SeckillService"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CreateSeckillActivity",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateSeckillActivityRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CreateSeckillActivityResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "CreateSeckillActivity",
+        "tags": [
+          "SeckillService"
+        ]
+      }
+    },
+    "/api/v1/seckill/activities/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "DeleteSeckillActivity",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteSeckillActivityResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "DeleteSeckillActivity",
+        "tags": [
+          "SeckillService"
+        ]
+      },
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetSeckillActivity",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetSeckillActivityResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetSeckillActivity",
+        "tags": [
+          "SeckillService"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "UpdateSeckillActivity",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateSeckillActivityRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateSeckillActivityResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "UpdateSeckillActivity",
+        "tags": [
+          "SeckillService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "additionalProperties": {},
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "rpcStatus": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "details": {
+          "items": {
+            "$ref": "#/definitions/protobufAny",
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateSeckillActivityRequest": {
+      "properties": {
+        "enable_status": {
+          "description": "0-禁用,1-启用",
+          "format": "int32",
+          "type": "integer"
+        },
+        "end_time": {
+          "description": "Unix 秒",
+          "format": "int64",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "seckill_price": {
+          "type": "string"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "start_time": {
+          "description": "Unix 秒",
+          "format": "int64",
+          "type": "string"
+        },
+        "stock": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateSeckillActivityResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1SeckillActivity"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteSeckillActivityRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteSeckillActivityResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetSeckillActivityRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetSeckillActivityResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1SeckillActivity"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListSeckillActivitiesRequest": {
+      "properties": {
+        "include_disabled": {
+          "description": "是否包含已禁用活动（管理后台用）",
+          "type": "boolean"
+        },
+        "page": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "status": {
+          "description": "状态：0-未开始，1-进行中，2-已结束",
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListSeckillActivitiesResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1SeckillActivityListData"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1SeckillActivity": {
+      "properties": {
+        "enable_status": {
+          "description": "配置状态：0-禁用，1-启用（管理后台用）",
+          "format": "int32",
+          "type": "integer"
+        },
+        "end_time": {
+          "description": "结束时间（时间戳）",
+          "format": "int64",
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "original_price": {
+          "description": "原价",
+          "type": "string"
+        },
+        "seckill_price": {
+          "description": "秒杀价",
+          "type": "string"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "sku_image": {
+          "type": "string"
+        },
+        "sku_name": {
+          "type": "string"
+        },
+        "sold": {
+          "description": "已售",
+          "format": "int32",
+          "type": "integer"
+        },
+        "start_time": {
+          "description": "开始时间（时间戳）",
+          "format": "int64",
+          "type": "string"
+        },
+        "status": {
+          "description": "状态：0-未开始，1-进行中，2-已结束",
+          "format": "int32",
+          "type": "integer"
+        },
+        "stock": {
+          "description": "库存",
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1SeckillActivityListData": {
+      "properties": {
+        "list": {
+          "items": {
+            "$ref": "#/definitions/v1SeckillActivity"
+          },
+          "type": "array"
+        },
+        "page": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "total": {
+          "format": "int64",
+          "type": "string"
+        },
+        "total_pages": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1SeckillData": {
+      "properties": {
+        "message": {
+          "description": "提示信息",
+          "type": "string"
+        },
+        "order_no": {
+          "description": "订单号（如果成功）",
+          "type": "string"
+        },
+        "success": {
+          "type": "boolean"
+        }
+      },
+      "type": "object"
+    },
+    "v1SeckillRequest": {
+      "properties": {
+        "quantity": {
+          "description": "数量，默认1",
+          "format": "int32",
+          "type": "integer"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1SeckillResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1SeckillData"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateSeckillActivityRequest": {
+      "properties": {
+        "enable_status": {
+          "description": "0-禁用,1-启用",
+          "format": "int32",
+          "type": "integer"
+        },
+        "end_time": {
+          "description": "Unix 秒",
+          "format": "int64",
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "seckill_price": {
+          "type": "string"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "start_time": {
+          "description": "Unix 秒",
+          "format": "int64",
+          "type": "string"
+        },
+        "stock": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateSeckillActivityResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1SeckillActivity"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,242 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "message/v1/message.proto",
+    "version": "version not set"
+  },
+  "host": "localhost:8080",
+  "schemes": [
+    "http"
+  ],
+  "tags": [
+    {
+      "name": "MessageService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "protobufAny": {
+      "additionalProperties": {},
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "rpcStatus": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "details": {
+          "items": {
+            "$ref": "#/definitions/protobufAny",
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1BatchMarkAsReadRequest": {
+      "properties": {
+        "message_ids": {
+          "items": {
+            "format": "int64",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1BatchMarkAsReadResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetMessageListRequest": {
+      "properties": {
+        "page": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "type": {
+          "description": "0-全部",
+          "format": "int32",
+          "type": "integer"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetMessageListResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1Message"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        },
+        "total": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetUnreadCountRequest": {
+      "properties": {
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetUnreadCountResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "count": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1MarkAsReadRequest": {
+      "properties": {
+        "message_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1MarkAsReadResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1Message": {
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "is_read": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "link": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1SendMessageRequest": {
+      "properties": {
+        "content": {
+          "type": "string"
+        },
+        "link": {
+          "type": "string"
+        },
+        "title": {
+          "type": "string"
+        },
+        "type": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1SendMessageResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

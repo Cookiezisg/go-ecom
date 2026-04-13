@@ -1,0 +1,203 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "recommend/v1/recommend.proto",
+    "version": "version not set"
+  },
+  "host": "localhost:8080",
+  "schemes": [
+    "http"
+  ],
+  "tags": [
+    {
+      "name": "RecommendService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "protobufAny": {
+      "additionalProperties": {},
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "rpcStatus": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "details": {
+          "items": {
+            "$ref": "#/definitions/protobufAny",
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetHotProductsRequest": {
+      "properties": {
+        "category_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "limit": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetHotProductsResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1RecommendProduct"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetPersonalizedRecommendRequest": {
+      "properties": {
+        "limit": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetPersonalizedRecommendResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1RecommendProduct"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetRealtimeRecommendRequest": {
+      "properties": {
+        "limit": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetRealtimeRecommendResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1RecommendProduct"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetSimilarProductsRequest": {
+      "properties": {
+        "limit": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "product_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetSimilarProductsResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1RecommendProduct"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1RecommendProduct": {
+      "properties": {
+        "main_image": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "price": {
+          "type": "string"
+        },
+        "product_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "reason": {
+          "description": "推荐理由",
+          "type": "string"
+        },
+        "score": {
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

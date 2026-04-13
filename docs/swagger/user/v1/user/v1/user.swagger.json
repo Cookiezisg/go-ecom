@@ -1,0 +1,893 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "user/v1/user.proto",
+    "version": "version not set"
+  },
+  "host": "localhost:8080",
+  "schemes": [
+    "http"
+  ],
+  "tags": [
+    {
+      "name": "UserService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/user/address": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetAddressList",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetAddressListResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "获取地址列表",
+        "tags": [
+          "UserService"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "AddAddress",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1AddAddressRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1AddAddressResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "添加地址",
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/api/v1/user/address/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "DeleteAddress",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteAddressResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "删除地址",
+        "tags": [
+          "UserService"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "UpdateAddress",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateAddressRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateAddressResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "更新地址",
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/api/v1/user/info": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetUserInfo",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetUserInfoResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "获取用户信息",
+        "tags": [
+          "UserService"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "UpdateUserInfo",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateUserInfoRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateUserInfoResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "更新用户信息",
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/api/v1/user/login": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "Login",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1LoginRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1LoginResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "用户登录",
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/api/v1/user/register": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "Register",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RegisterRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1RegisterResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "用户注册",
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/api/v1/users": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ListUsers",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ListUsersResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "ListUsers",
+        "tags": [
+          "UserService"
+        ]
+      }
+    },
+    "/api/v1/users/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "DeleteUser",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteUserResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "DeleteUser",
+        "tags": [
+          "UserService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "additionalProperties": {},
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "rpcStatus": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "details": {
+          "items": {
+            "$ref": "#/definitions/protobufAny",
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1AddAddressRequest": {
+      "properties": {
+        "city": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "district": {
+          "type": "string"
+        },
+        "is_default": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "postal_code": {
+          "type": "string"
+        },
+        "province": {
+          "type": "string"
+        },
+        "receiver_name": {
+          "type": "string"
+        },
+        "receiver_phone": {
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1AddAddressResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Address"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1Address": {
+      "properties": {
+        "city": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "district": {
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "is_default": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "postal_code": {
+          "type": "string"
+        },
+        "province": {
+          "type": "string"
+        },
+        "receiver_name": {
+          "type": "string"
+        },
+        "receiver_phone": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteAddressRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteAddressResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteUserRequest": {
+      "properties": {
+        "id": {
+          "description": "路径参数 :id 会映射到这里",
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteUserResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetAddressListRequest": {
+      "properties": {
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetAddressListResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1Address"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetUserInfoRequest": {
+      "properties": {
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetUserInfoResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1User"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListUsersData": {
+      "properties": {
+        "page": {
+          "description": "当前页码",
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "description": "每页数量",
+          "format": "int32",
+          "type": "integer"
+        },
+        "total": {
+          "description": "总数量",
+          "format": "int32",
+          "type": "integer"
+        },
+        "users": {
+          "items": {
+            "$ref": "#/definitions/v1User"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListUsersRequest": {
+      "properties": {
+        "keyword": {
+          "description": "搜索关键词（用户名/手机号/邮箱）",
+          "type": "string"
+        },
+        "page": {
+          "description": "页码，从1开始",
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "description": "每页数量",
+          "format": "int32",
+          "type": "integer"
+        },
+        "status": {
+          "description": "状态筛选（0-全部，1-正常，2-禁用）",
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListUsersResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1ListUsersData"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1LoginData": {
+      "properties": {
+        "expire_time": {
+          "format": "int64",
+          "type": "string"
+        },
+        "token": {
+          "type": "string"
+        },
+        "user": {
+          "$ref": "#/definitions/v1User"
+        }
+      },
+      "type": "object"
+    },
+    "v1LoginRequest": {
+      "properties": {
+        "login_type": {
+          "description": "1-用户名, 2-手机号, 3-邮箱",
+          "format": "int32",
+          "type": "integer"
+        },
+        "password": {
+          "type": "string"
+        },
+        "username": {
+          "description": "用户名/手机号/邮箱",
+          "type": "string"
+        },
+        "verify_code": {
+          "description": "验证码（可选，前端已做基础验证）",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1LoginResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1LoginData"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1RegisterRequest": {
+      "properties": {
+        "email": {
+          "type": "string"
+        },
+        "password": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        },
+        "verify_code": {
+          "description": "验证码",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1RegisterResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1User"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateAddressRequest": {
+      "properties": {
+        "city": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "district": {
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "is_default": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "postal_code": {
+          "type": "string"
+        },
+        "province": {
+          "type": "string"
+        },
+        "receiver_name": {
+          "type": "string"
+        },
+        "receiver_phone": {
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateAddressResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Address"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateUserInfoRequest": {
+      "properties": {
+        "avatar": {
+          "type": "string"
+        },
+        "birthday": {
+          "type": "string"
+        },
+        "gender": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateUserInfoResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1User"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1User": {
+      "properties": {
+        "avatar": {
+          "type": "string"
+        },
+        "birthday": {
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "email": {
+          "type": "string"
+        },
+        "gender": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "member_level": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "nickname": {
+          "type": "string"
+        },
+        "phone": {
+          "type": "string"
+        },
+        "points": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "username": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

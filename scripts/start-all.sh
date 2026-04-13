@@ -128,8 +128,39 @@ if [ "$SKIP_INFRA" = false ]; then
     
     # 检查 Docker 是否运行
     if ! docker ps > /dev/null 2>&1; then
-        print_error "Docker 守护进程未运行，请先启动 Docker"
-        exit 1
+        print_warning "Docker 守护进程未运行，尝试自动启动..."
+        case "$(uname -s)" in
+            Darwin)
+                open -a Docker
+                ;;
+            Linux)
+                if command -v systemctl &> /dev/null; then
+                    sudo systemctl start docker
+                else
+                    print_error "无法自动启动 Docker，请手动启动"
+                    exit 1
+                fi
+                ;;
+            *)
+                print_error "不支持的操作系统，请手动启动 Docker"
+                exit 1
+                ;;
+        esac
+        max_retries=30
+        retries=0
+        while [ $retries -lt $max_retries ]; do
+            sleep 2
+            if docker ps > /dev/null 2>&1; then
+                print_success "Docker 已就绪"
+                break
+            fi
+            retries=$((retries + 1))
+            print_info "等待 Docker 启动... ($retries/$max_retries)"
+        done
+        if ! docker ps > /dev/null 2>&1; then
+            print_error "Docker 启动超时，请手动启动 Docker"
+            exit 1
+        fi
     fi
     
     # 先停止并清理可能存在的旧容器（避免名称冲突）
@@ -209,7 +240,35 @@ if [ "$SKIP_INFRA" = false ]; then
 fi
 
 # ============================================
-# 2. 初始化秒杀服务（生成 proto 文件）
+# 2. 初始化 MySQL 数据库
+# ============================================
+print_section "检查 MySQL 数据库"
+
+if command -v mysql &> /dev/null; then
+    MYSQL_CMD="mysql -h127.0.0.1 -P3306 -uroot -p123456"
+    if $MYSQL_CMD -e "USE ecommerce;" > /dev/null 2>&1; then
+        print_success "数据库 ecommerce 已存在，跳过初始化"
+    else
+        print_info "数据库 ecommerce 不存在，开始初始化..."
+        if [ -f "database/init.sh" ]; then
+            echo "n" | DB_HOST=127.0.0.1 DB_PORT=3306 DB_USER=root DB_PASS=123456 DB_NAME=ecommerce bash database/init.sh
+            if [ $? -eq 0 ]; then
+                print_success "数据库初始化完成"
+            else
+                print_error "数据库初始化失败，请手动运行: bash database/init.sh"
+                exit 1
+            fi
+        else
+            print_error "未找到 database/init.sh，请手动初始化数据库"
+            exit 1
+        fi
+    fi
+else
+    print_warning "未找到 mysql 客户端，跳过数据库检查（服务启动时可能报错）"
+fi
+
+# ============================================
+# 3. 初始化秒杀服务（生成 proto 文件）
 # ============================================
 print_section "初始化秒杀服务"
 
@@ -411,32 +470,33 @@ for service_config in "${CORE_SERVICES[@]}"; do
     sleep 3  # 增加等待时间，让服务完全启动
 done
 
-# 等待核心服务就绪（特别是 order-service，API Gateway 依赖它）
+# 验证所有核心服务是否就绪
 print_info "等待核心服务就绪..."
 sleep 5
 
-# 验证 order-service 是否就绪
-if echo "${CORE_SERVICES[@]}" | grep -q "order-service"; then
-    print_info "验证 order-service 连接..."
+for service_config in "${CORE_SERVICES[@]}"; do
+    service=$(echo "$service_config" | cut -d: -f1)
+    port=$(echo "$service_config" | cut -d: -f3)
+
+    print_info "验证 $service 连接..."
     max_retries=10
     retries=0
     while [ $retries -lt $max_retries ]; do
-        # 检查端口是否在监听
-        if check_port 8082; then
-            print_success "order-service 已就绪 (端口 8082)"
+        if check_port $port; then
+            print_success "$service 已就绪 (端口 $port)"
             break
         fi
         retries=$((retries + 1))
         if [ $retries -lt $max_retries ]; then
-            print_info "等待 order-service 就绪... ($retries/$max_retries)"
+            print_info "等待 $service 就绪... ($retries/$max_retries)"
             sleep 2
         fi
     done
-    
+
     if [ $retries -eq $max_retries ]; then
-        print_warning "order-service 在 $((max_retries * 2)) 秒内未就绪，API Gateway 可能无法连接"
+        print_warning "$service 在 $((max_retries * 2)) 秒内未就绪"
     fi
-fi
+done
 
 # 启动扩展服务
 print_info "启动扩展服务..."
@@ -562,7 +622,46 @@ print_warning "按 Ctrl+C 停止所有服务"
 echo ""
 
 # ============================================
-# 9. 等待用户中断并清理
+# 9. 启动 Swagger UI
+# ============================================
+print_section "启动 Swagger UI"
+
+SWAGGER_STARTED=false
+
+if command -v protoc >/dev/null 2>&1 && command -v protoc-gen-openapiv2 >/dev/null 2>&1; then
+    print_info "生成 OpenAPI 文档..."
+    if bash scripts/generate-openapi.sh > logs/generate-openapi.log 2>&1; then
+        print_success "OpenAPI 文档生成完成"
+    else
+        print_warning "OpenAPI 文档生成失败，查看 logs/generate-openapi.log"
+    fi
+
+    print_info "合并 Swagger 文档..."
+    if go run cmd/generate-swagger/main.go > logs/generate-swagger.log 2>&1; then
+        print_success "Swagger 文档合并完成"
+    else
+        print_warning "Swagger 文档合并失败，查看 logs/generate-swagger.log"
+    fi
+
+    if [ -f "docs/swagger/all.swagger.json" ] && command -v docker >/dev/null 2>&1; then
+        docker rm -f swagger-ui > /dev/null 2>&1 || true
+        docker run -d --name swagger-ui \
+            -p 8088:8080 \
+            -e SWAGGER_JSON=/docs/all.swagger.json \
+            -v "$(pwd)/docs/swagger:/docs" \
+            swaggerapi/swagger-ui > /dev/null 2>&1
+        print_success "Swagger UI 已启动: http://localhost:8088"
+        SWAGGER_STARTED=true
+    else
+        print_warning "未生成 all.swagger.json 或 Docker 不可用，跳过 Swagger UI"
+    fi
+else
+    print_warning "未安装 protoc 或 protoc-gen-openapiv2，跳过 Swagger UI"
+    print_info "安装命令: go install github.com/grpc-ecosystem/grpc-gateway/v2/protoc-gen-openapiv2@latest"
+fi
+
+# ============================================
+# 10. 等待用户中断并清理
 # ============================================
 cleanup() {
     echo ""
@@ -576,6 +675,11 @@ cleanup() {
         fi
     done
     
+    if [ "$SWAGGER_STARTED" = true ]; then
+        print_info "停止 Swagger UI..."
+        docker rm -f swagger-ui > /dev/null 2>&1 || true
+    fi
+
     echo ""
     print_success "所有服务已停止"
     exit 0

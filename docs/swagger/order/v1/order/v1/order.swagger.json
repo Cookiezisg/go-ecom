@@ -1,0 +1,560 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "order/v1/order.proto",
+    "version": "version not set"
+  },
+  "host": "localhost:8080",
+  "schemes": [
+    "http"
+  ],
+  "tags": [
+    {
+      "name": "OrderService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/orders": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ListOrders",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ListOrdersResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "获取订单列表",
+        "tags": [
+          "OrderService"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CreateOrder",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateOrderRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CreateOrderResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "创建订单",
+        "tags": [
+          "OrderService"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetOrder",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetOrderResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "获取订单详情",
+        "tags": [
+          "OrderService"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/cancel": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CancelOrder",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CancelOrderRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CancelOrderResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "取消订单",
+        "tags": [
+          "OrderService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "additionalProperties": {},
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "rpcStatus": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "details": {
+          "items": {
+            "$ref": "#/definitions/protobufAny",
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CancelOrderRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_no": {
+          "type": "string"
+        },
+        "reason": {
+          "description": "取消原因",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CancelOrderResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ConfirmReceiveRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_no": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ConfirmReceiveResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateOrderRequest": {
+      "properties": {
+        "address_id": {
+          "description": "收货地址ID",
+          "format": "int64",
+          "type": "string"
+        },
+        "coupon_id": {
+          "description": "优惠券ID（可选）",
+          "format": "int64",
+          "type": "string"
+        },
+        "items": {
+          "description": "订单商品项",
+          "items": {
+            "$ref": "#/definitions/v1OrderItemRequest"
+          },
+          "type": "array"
+        },
+        "order_type": {
+          "description": "订单类型: 1-普通订单, 2-秒杀订单, 3-拼团订单",
+          "format": "int32",
+          "type": "integer"
+        },
+        "remark": {
+          "description": "订单备注",
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateOrderResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Order"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetOrderRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_no": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetOrderResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Order"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListOrdersRequest": {
+      "properties": {
+        "page": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "status": {
+          "description": "订单状态，-1表示全部",
+          "format": "int32",
+          "type": "integer"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListOrdersResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1OrderListData"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1Order": {
+      "properties": {
+        "cancel_reason": {
+          "description": "取消原因",
+          "type": "string"
+        },
+        "cancel_time": {
+          "description": "取消时间",
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "delivery_time": {
+          "description": "发货时间",
+          "type": "string"
+        },
+        "discount_amount": {
+          "description": "优惠金额",
+          "type": "string"
+        },
+        "freight_amount": {
+          "description": "运费",
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "items": {
+          "description": "订单商品项",
+          "items": {
+            "$ref": "#/definitions/v1OrderItem"
+          },
+          "type": "array"
+        },
+        "order_no": {
+          "type": "string"
+        },
+        "order_type": {
+          "description": "1-普通订单, 2-秒杀订单, 3-拼团订单",
+          "format": "int32",
+          "type": "integer"
+        },
+        "pay_amount": {
+          "description": "实付金额",
+          "type": "string"
+        },
+        "payment_method": {
+          "description": "支付方式: 1-微信, 2-支付宝, 3-银联",
+          "format": "int32",
+          "type": "integer"
+        },
+        "payment_time": {
+          "description": "支付时间",
+          "type": "string"
+        },
+        "receive_time": {
+          "description": "收货时间",
+          "type": "string"
+        },
+        "receiver_address": {
+          "description": "收货地址",
+          "type": "string"
+        },
+        "receiver_name": {
+          "description": "收货人姓名",
+          "type": "string"
+        },
+        "receiver_phone": {
+          "description": "收货人电话",
+          "type": "string"
+        },
+        "remark": {
+          "description": "订单备注",
+          "type": "string"
+        },
+        "status": {
+          "description": "0-已取消, 1-待支付, 2-待发货, 3-待收货, 4-已完成, 5-已退款",
+          "format": "int32",
+          "type": "integer"
+        },
+        "total_amount": {
+          "description": "订单总金额",
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1OrderItem": {
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_no": {
+          "type": "string"
+        },
+        "price": {
+          "description": "单价",
+          "type": "string"
+        },
+        "product_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "product_name": {
+          "type": "string"
+        },
+        "quantity": {
+          "description": "数量",
+          "format": "int32",
+          "type": "integer"
+        },
+        "sku_code": {
+          "type": "string"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "sku_image": {
+          "type": "string"
+        },
+        "sku_name": {
+          "type": "string"
+        },
+        "sku_specs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "SKU规格",
+          "type": "object"
+        },
+        "total_amount": {
+          "description": "小计金额",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1OrderItemRequest": {
+      "properties": {
+        "quantity": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1OrderListData": {
+      "properties": {
+        "list": {
+          "items": {
+            "$ref": "#/definitions/v1Order"
+          },
+          "type": "array"
+        },
+        "page": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "total": {
+          "format": "int64",
+          "type": "string"
+        },
+        "total_pages": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

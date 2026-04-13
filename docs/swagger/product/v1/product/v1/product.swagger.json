@@ -1,0 +1,2031 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "product/v1/product.proto",
+    "version": "version not set"
+  },
+  "host": "localhost:8080",
+  "schemes": [
+    "http"
+  ],
+  "tags": [
+    {
+      "name": "ProductService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/banners": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ListBanners",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ListBannersResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "ListBanners",
+        "tags": [
+          "ProductService"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CreateBanner",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateBannerRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CreateBannerResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "CreateBanner",
+        "tags": [
+          "ProductService"
+        ]
+      }
+    },
+    "/api/v1/banners/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "DeleteBanner",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteBannerResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "DeleteBanner",
+        "tags": [
+          "ProductService"
+        ]
+      },
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetBanner",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetBannerResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetBanner",
+        "tags": [
+          "ProductService"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "UpdateBanner",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateBannerRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateBannerResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "UpdateBanner",
+        "tags": [
+          "ProductService"
+        ]
+      }
+    },
+    "/api/v1/categories": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetCategoryList",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetCategoryListResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "获取分类列表",
+        "tags": [
+          "ProductService"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CreateCategory",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateCategoryRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CreateCategoryResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "CreateCategory",
+        "tags": [
+          "ProductService"
+        ]
+      }
+    },
+    "/api/v1/categories/tree": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetCategoryTree",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetCategoryTreeResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "获取分类树",
+        "tags": [
+          "ProductService"
+        ]
+      }
+    },
+    "/api/v1/categories/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "DeleteCategory",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteCategoryResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "DeleteCategory",
+        "tags": [
+          "ProductService"
+        ]
+      },
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetCategory",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetCategoryResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetCategory",
+        "tags": [
+          "ProductService"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "UpdateCategory",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateCategoryRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateCategoryResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "UpdateCategory",
+        "tags": [
+          "ProductService"
+        ]
+      }
+    },
+    "/api/v1/products": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ListProducts",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ListProductsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "获取商品列表",
+        "tags": [
+          "ProductService"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CreateProduct",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateProductRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CreateProductResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "CreateProduct",
+        "tags": [
+          "ProductService"
+        ]
+      }
+    },
+    "/api/v1/products/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "DeleteProduct",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteProductResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "DeleteProduct",
+        "tags": [
+          "ProductService"
+        ]
+      },
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetProduct",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetProductResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "获取商品详情",
+        "tags": [
+          "ProductService"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "UpdateProduct",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateProductRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateProductResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "UpdateProduct",
+        "tags": [
+          "ProductService"
+        ]
+      }
+    },
+    "/api/v1/skus": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ListSkus",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ListSkusResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "ListSkus",
+        "tags": [
+          "ProductService"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CreateSku",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateSkuRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CreateSkuResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "CreateSku",
+        "tags": [
+          "ProductService"
+        ]
+      }
+    },
+    "/api/v1/skus/{id}": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "DeleteSku",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1DeleteSkuResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "DeleteSku",
+        "tags": [
+          "ProductService"
+        ]
+      },
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetSku",
+        "parameters": [
+          {
+            "description": "id 参数",
+            "in": "path",
+            "name": "id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetSkuResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "获取SKU详情",
+        "tags": [
+          "ProductService"
+        ]
+      },
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "UpdateSku",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateSkuRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateSkuResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "UpdateSku",
+        "tags": [
+          "ProductService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "additionalProperties": {},
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "rpcStatus": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "details": {
+          "items": {
+            "$ref": "#/definitions/protobufAny",
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1Banner": {
+      "properties": {
+        "created_at": {
+          "type": "string"
+        },
+        "description": {
+          "type": "string"
+        },
+        "end_time": {
+          "description": "结束时间",
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "image": {
+          "description": "封面图片URL",
+          "type": "string"
+        },
+        "image_local": {
+          "description": "本地图片路径",
+          "type": "string"
+        },
+        "link": {
+          "description": "跳转链接",
+          "type": "string"
+        },
+        "link_type": {
+          "description": "1-商品详情, 2-分类页面, 3-外部链接, 4-无链接",
+          "format": "int32",
+          "type": "integer"
+        },
+        "sort": {
+          "description": "排序值",
+          "format": "int32",
+          "type": "integer"
+        },
+        "start_time": {
+          "description": "开始时间",
+          "type": "string"
+        },
+        "status": {
+          "description": "0-禁用, 1-启用",
+          "format": "int32",
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1Category": {
+      "properties": {
+        "children": {
+          "description": "子类目",
+          "items": {
+            "$ref": "#/definitions/v1Category"
+          },
+          "type": "array"
+        },
+        "description": {
+          "description": "类目描述",
+          "type": "string"
+        },
+        "icon": {
+          "description": "图标URL",
+          "type": "string"
+        },
+        "icon_local": {
+          "description": "本地图标路径",
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "image": {
+          "description": "图片URL",
+          "type": "string"
+        },
+        "image_local": {
+          "description": "本地图片路径",
+          "type": "string"
+        },
+        "level": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "sort": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateBannerRequest": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "end_time": {
+          "description": "结束时间",
+          "type": "string"
+        },
+        "image": {
+          "description": "封面图片URL",
+          "type": "string"
+        },
+        "image_local": {
+          "description": "本地图片路径",
+          "type": "string"
+        },
+        "link": {
+          "description": "跳转链接",
+          "type": "string"
+        },
+        "link_type": {
+          "description": "1-商品详情, 2-分类页面, 3-外部链接, 4-无链接",
+          "format": "int32",
+          "type": "integer"
+        },
+        "sort": {
+          "description": "排序值",
+          "format": "int32",
+          "type": "integer"
+        },
+        "start_time": {
+          "description": "开始时间",
+          "type": "string"
+        },
+        "status": {
+          "description": "0-禁用, 1-启用",
+          "format": "int32",
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateBannerResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Banner"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateCategoryRequest": {
+      "properties": {
+        "description": {
+          "description": "类目描述",
+          "type": "string"
+        },
+        "icon": {
+          "description": "图标URL",
+          "type": "string"
+        },
+        "icon_local": {
+          "description": "本地图标路径",
+          "type": "string"
+        },
+        "image": {
+          "description": "图片URL",
+          "type": "string"
+        },
+        "image_local": {
+          "description": "本地图片路径",
+          "type": "string"
+        },
+        "level": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "sort": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateCategoryResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Category"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateProductRequest": {
+      "properties": {
+        "brand_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "category_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "images": {
+          "description": "图片URL列表",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "is_hot": {
+          "description": "是否热门: 0-否, 1-是",
+          "format": "int32",
+          "type": "integer"
+        },
+        "local_images": {
+          "description": "本地图片路径列表",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "local_main_image": {
+          "description": "本地主图路径",
+          "type": "string"
+        },
+        "main_image": {
+          "description": "主图URL",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "original_price": {
+          "format": "double",
+          "type": "number"
+        },
+        "price": {
+          "format": "double",
+          "type": "number"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "stock": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "subtitle": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateProductResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Product"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateSkuRequest": {
+      "properties": {
+        "image": {
+          "description": "SKU图片",
+          "type": "string"
+        },
+        "name": {
+          "description": "SKU名称（必填）",
+          "type": "string"
+        },
+        "original_price": {
+          "description": "原价",
+          "format": "double",
+          "type": "number"
+        },
+        "price": {
+          "description": "价格（必填）",
+          "format": "double",
+          "type": "number"
+        },
+        "product_id": {
+          "description": "商品ID（必填）",
+          "format": "int64",
+          "type": "string"
+        },
+        "sku_code": {
+          "description": "SKU编码（必填）",
+          "type": "string"
+        },
+        "specs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "规格属性（必填）",
+          "type": "object"
+        },
+        "status": {
+          "description": "状态: 0-下架, 1-上架",
+          "format": "int32",
+          "type": "integer"
+        },
+        "stock": {
+          "description": "库存",
+          "format": "int32",
+          "type": "integer"
+        },
+        "volume": {
+          "description": "体积(立方米)",
+          "format": "double",
+          "type": "number"
+        },
+        "weight": {
+          "description": "重量(kg)",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "v1CreateSkuResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Sku"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteBannerRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteBannerResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteCategoryRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteCategoryResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteProductRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteProductResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteSkuRequest": {
+      "properties": {
+        "id": {
+          "description": "SKU ID（必填）",
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeleteSkuResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetBannerRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetBannerResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Banner"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetCategoryListRequest": {
+      "properties": {
+        "level": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "parent_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetCategoryListResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1Category"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetCategoryRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetCategoryResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Category"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetCategoryTreeRequest": {
+      "properties": {
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetCategoryTreeResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1Category"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetProductRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "spu_code": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetProductResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Product"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetSkuRequest": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "sku_code": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetSkuResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Sku"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListBannersRequest": {
+      "properties": {
+        "limit": {
+          "description": "限制数量，0表示不限制",
+          "format": "int32",
+          "type": "integer"
+        },
+        "status": {
+          "description": "-1-全部, 0-禁用, 1-启用",
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListBannersResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1Banner"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListProductsRequest": {
+      "properties": {
+        "brand_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "category_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "is_hot": {
+          "description": "是否热门: -1-全部, 0-否, 1-是",
+          "format": "int32",
+          "type": "integer"
+        },
+        "keyword": {
+          "type": "string"
+        },
+        "page": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "sort": {
+          "description": "price_asc, price_desc, sales_desc, created_desc",
+          "type": "string"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListProductsResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1ProductListData"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListSkusRequest": {
+      "properties": {
+        "page": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "product_id": {
+          "description": "商品ID，0表示查询所有",
+          "format": "int64",
+          "type": "string"
+        },
+        "status": {
+          "description": "状态: -1-全部, 0-下架, 1-上架",
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1ListSkusResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1SkuListData"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1Product": {
+      "properties": {
+        "brand_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "category_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "images": {
+          "description": "图片URL列表",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "is_hot": {
+          "description": "是否热门: 0-否, 1-是",
+          "format": "int32",
+          "type": "integer"
+        },
+        "local_images": {
+          "description": "本地图片路径列表",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "local_main_image": {
+          "description": "本地主图路径",
+          "type": "string"
+        },
+        "main_image": {
+          "description": "主图URL",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "original_price": {
+          "format": "double",
+          "type": "number"
+        },
+        "price": {
+          "format": "double",
+          "type": "number"
+        },
+        "sales": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "spu_code": {
+          "type": "string"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "stock": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "subtitle": {
+          "type": "string"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ProductListData": {
+      "properties": {
+        "list": {
+          "items": {
+            "$ref": "#/definitions/v1Product"
+          },
+          "type": "array"
+        },
+        "page": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "total": {
+          "format": "int64",
+          "type": "string"
+        },
+        "total_pages": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1Sku": {
+      "properties": {
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "image": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "original_price": {
+          "format": "double",
+          "type": "number"
+        },
+        "price": {
+          "format": "double",
+          "type": "number"
+        },
+        "product_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "sku_code": {
+          "type": "string"
+        },
+        "specs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "规格属性",
+          "type": "object"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "stock": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "volume": {
+          "format": "double",
+          "type": "number"
+        },
+        "weight": {
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "v1SkuListData": {
+      "properties": {
+        "list": {
+          "items": {
+            "$ref": "#/definitions/v1Sku"
+          },
+          "type": "array"
+        },
+        "page": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "total": {
+          "format": "int64",
+          "type": "string"
+        },
+        "total_pages": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateBannerRequest": {
+      "properties": {
+        "description": {
+          "type": "string"
+        },
+        "end_time": {
+          "description": "结束时间",
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "image": {
+          "description": "封面图片URL",
+          "type": "string"
+        },
+        "image_local": {
+          "description": "本地图片路径",
+          "type": "string"
+        },
+        "link": {
+          "description": "跳转链接",
+          "type": "string"
+        },
+        "link_type": {
+          "description": "1-商品详情, 2-分类页面, 3-外部链接, 4-无链接",
+          "format": "int32",
+          "type": "integer"
+        },
+        "sort": {
+          "description": "排序值",
+          "format": "int32",
+          "type": "integer"
+        },
+        "start_time": {
+          "description": "开始时间",
+          "type": "string"
+        },
+        "status": {
+          "description": "0-禁用, 1-启用",
+          "format": "int32",
+          "type": "integer"
+        },
+        "title": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateBannerResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Banner"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateCategoryRequest": {
+      "properties": {
+        "description": {
+          "description": "类目描述",
+          "type": "string"
+        },
+        "icon": {
+          "description": "图标URL",
+          "type": "string"
+        },
+        "icon_local": {
+          "description": "本地图标路径",
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "image": {
+          "description": "图片URL",
+          "type": "string"
+        },
+        "image_local": {
+          "description": "本地图片路径",
+          "type": "string"
+        },
+        "level": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "name": {
+          "type": "string"
+        },
+        "parent_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "sort": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateCategoryResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Category"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateProductRequest": {
+      "properties": {
+        "brand_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "category_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "detail": {
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "images": {
+          "description": "图片URL列表",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "is_hot": {
+          "description": "是否热门: 0-否, 1-是",
+          "format": "int32",
+          "type": "integer"
+        },
+        "local_images": {
+          "description": "本地图片路径列表",
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "local_main_image": {
+          "description": "本地主图路径",
+          "type": "string"
+        },
+        "main_image": {
+          "description": "主图URL",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "original_price": {
+          "format": "double",
+          "type": "number"
+        },
+        "price": {
+          "format": "double",
+          "type": "number"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "stock": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "subtitle": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateProductResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Product"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateSkuRequest": {
+      "properties": {
+        "id": {
+          "description": "SKU ID（必填）",
+          "format": "int64",
+          "type": "string"
+        },
+        "image": {
+          "description": "SKU图片",
+          "type": "string"
+        },
+        "name": {
+          "description": "SKU名称",
+          "type": "string"
+        },
+        "original_price": {
+          "description": "原价",
+          "format": "double",
+          "type": "number"
+        },
+        "price": {
+          "description": "价格",
+          "format": "double",
+          "type": "number"
+        },
+        "sku_code": {
+          "description": "SKU编码",
+          "type": "string"
+        },
+        "specs": {
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "规格属性",
+          "type": "object"
+        },
+        "status": {
+          "description": "状态: 0-下架, 1-上架",
+          "format": "int32",
+          "type": "integer"
+        },
+        "stock": {
+          "description": "库存",
+          "format": "int32",
+          "type": "integer"
+        },
+        "volume": {
+          "description": "体积(立方米)",
+          "format": "double",
+          "type": "number"
+        },
+        "weight": {
+          "description": "重量(kg)",
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "v1UpdateSkuResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Sku"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,206 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "search/v1/search.proto",
+    "version": "version not set"
+  },
+  "host": "localhost:8080",
+  "schemes": [
+    "http"
+  ],
+  "tags": [
+    {
+      "name": "SearchService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {},
+  "definitions": {
+    "protobufAny": {
+      "additionalProperties": {},
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "rpcStatus": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "details": {
+          "items": {
+            "$ref": "#/definitions/protobufAny",
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1BuildProductIndexRequest": {
+      "properties": {
+        "product_ids": {
+          "items": {
+            "format": "int64",
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "v1BuildProductIndexResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetHotKeywordsRequest": {
+      "properties": {
+        "limit": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetHotKeywordsResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "keywords": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetSearchSuggestionsRequest": {
+      "properties": {
+        "keyword": {
+          "type": "string"
+        },
+        "limit": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetSearchSuggestionsResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "suggestions": {
+          "items": {
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "v1ProductSearchResult": {
+      "properties": {
+        "main_image": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "price": {
+          "type": "string"
+        },
+        "product_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "sales": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "score": {
+          "format": "double",
+          "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "v1SearchProductsRequest": {
+      "properties": {
+        "category_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "keyword": {
+          "type": "string"
+        },
+        "page": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "sort_by": {
+          "description": "price_asc, price_desc, sales_desc, score_desc",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1SearchProductsResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1ProductSearchResult"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        },
+        "total": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

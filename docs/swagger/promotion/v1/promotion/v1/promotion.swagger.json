@@ -1,0 +1,513 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "promotion/v1/promotion.proto",
+    "version": "version not set"
+  },
+  "host": "localhost:8080",
+  "schemes": [
+    "http"
+  ],
+  "tags": [
+    {
+      "name": "PromotionService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/promotion/coupons": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetCouponList",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetCouponListResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetCouponList",
+        "tags": [
+          "PromotionService"
+        ]
+      }
+    },
+    "/api/v1/promotion/promotions": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetPromotionList",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetPromotionListResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetPromotionList",
+        "tags": [
+          "PromotionService"
+        ]
+      }
+    },
+    "/api/v1/promotion/user-coupons/{user_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetUserCouponList",
+        "parameters": [
+          {
+            "description": "user_id 参数",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetUserCouponListResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetUserCouponList",
+        "tags": [
+          "PromotionService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "additionalProperties": {},
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "rpcStatus": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "details": {
+          "items": {
+            "$ref": "#/definitions/protobufAny",
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CalculateDiscountRequest": {
+      "properties": {
+        "coupon_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "product_ids": {
+          "items": {
+            "format": "int64",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "quantities": {
+          "items": {
+            "format": "int32",
+            "type": "integer"
+          },
+          "type": "array"
+        },
+        "total_amount": {
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1CalculateDiscountResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "discount_amount": {
+          "type": "string"
+        },
+        "final_amount": {
+          "type": "string"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1Coupon": {
+      "properties": {
+        "discount_type": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "discount_value": {
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "max_discount": {
+          "type": "string"
+        },
+        "min_amount": {
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "type": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "valid_end_time": {
+          "type": "string"
+        },
+        "valid_start_time": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ExchangePointsRequest": {
+      "properties": {
+        "points": {
+          "format": "int64",
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ExchangePointsResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetCouponListRequest": {
+      "properties": {
+        "page": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetCouponListResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1Coupon"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        },
+        "total": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetPromotionListRequest": {
+      "properties": {
+        "category_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "product_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetPromotionListResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1Promotion"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetUserCouponListRequest": {
+      "properties": {
+        "status": {
+          "description": "0-未使用, 1-已使用, 2-已过期",
+          "format": "int32",
+          "type": "integer"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetUserCouponListResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1UserCoupon"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetUserPointsRequest": {
+      "properties": {
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetUserPointsResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        },
+        "points": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1Promotion": {
+      "properties": {
+        "category_ids": {
+          "items": {
+            "format": "int64",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "end_time": {
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "name": {
+          "type": "string"
+        },
+        "product_ids": {
+          "items": {
+            "format": "int64",
+            "type": "string"
+          },
+          "type": "array"
+        },
+        "rule": {
+          "type": "string"
+        },
+        "start_time": {
+          "type": "string"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "type": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1ReceiveCouponRequest": {
+      "properties": {
+        "coupon_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ReceiveCouponResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UseCouponRequest": {
+      "properties": {
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "user_coupon_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UseCouponResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UserCoupon": {
+      "properties": {
+        "coupon_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "expire_at": {
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "status": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "user_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  }
+}

@@ -1,0 +1,459 @@
+{
+  "swagger": "2.0",
+  "info": {
+    "title": "inventory/v1/inventory.proto",
+    "version": "version not set"
+  },
+  "host": "localhost:8080",
+  "schemes": [
+    "http"
+  ],
+  "tags": [
+    {
+      "name": "InventoryService"
+    }
+  ],
+  "consumes": [
+    "application/json"
+  ],
+  "produces": [
+    "application/json"
+  ],
+  "paths": {
+    "/api/v1/inventory/deduct": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "DeductStock",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1DeductStockRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1DeductStockResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "扣减库存",
+        "tags": [
+          "InventoryService"
+        ]
+      }
+    },
+    "/api/v1/inventory/{sku_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetInventory",
+        "parameters": [
+          {
+            "description": "sku_id 参数",
+            "in": "path",
+            "name": "sku_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetInventoryResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "获取库存",
+        "tags": [
+          "InventoryService"
+        ]
+      }
+    }
+  },
+  "definitions": {
+    "protobufAny": {
+      "additionalProperties": {},
+      "properties": {
+        "@type": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "rpcStatus": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "details": {
+          "items": {
+            "$ref": "#/definitions/protobufAny",
+            "type": "object"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1BatchGetInventoryRequest": {
+      "properties": {
+        "sku_ids": {
+          "items": {
+            "format": "int64",
+            "type": "string"
+          },
+          "type": "array"
+        }
+      },
+      "type": "object"
+    },
+    "v1BatchGetInventoryResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1Inventory"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeductStockRequest": {
+      "properties": {
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "quantity": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "remark": {
+          "type": "string"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1DeductStockResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetInventoryLogRequest": {
+      "properties": {
+        "page": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "page_size": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetInventoryLogResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "items": {
+            "$ref": "#/definitions/v1InventoryLog"
+          },
+          "type": "array"
+        },
+        "message": {
+          "type": "string"
+        },
+        "total": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetInventoryRequest": {
+      "properties": {
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1GetInventoryResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "data": {
+          "$ref": "#/definitions/v1Inventory"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1Inventory": {
+      "properties": {
+        "available_stock": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "locked_stock": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "low_stock_threshold": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "sold_stock": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "total_stock": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "updated_at": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1InventoryLog": {
+      "properties": {
+        "after_stock": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "before_stock": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "created_at": {
+          "type": "string"
+        },
+        "id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "quantity": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "remark": {
+          "type": "string"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "type": {
+          "format": "int32",
+          "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1LockStockRequest": {
+      "properties": {
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "quantity": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "remark": {
+          "type": "string"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1LockStockResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1RollbackStockRequest": {
+      "properties": {
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "quantity": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "remark": {
+          "type": "string"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1RollbackStockResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1StockInRequest": {
+      "properties": {
+        "quantity": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "remark": {
+          "type": "string"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1StockInResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UnlockStockRequest": {
+      "properties": {
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "quantity": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "remark": {
+          "type": "string"
+        },
+        "sku_id": {
+          "format": "int64",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1UnlockStockResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    }
+  }
+}
