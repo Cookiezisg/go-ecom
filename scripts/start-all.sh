@@ -43,19 +43,19 @@ print_section() {
 }
 
 print_info() {
-    echo -e "\\033[36m$1\\033[0m"
+    echo -e "\033[36m$1\033[0m"
 }
 
 print_success() {
-    echo -e "\\033[32m✓ $1\\033[0m"
+    echo -e "\033[32m✓ $1\033[0m"
 }
 
 print_error() {
-    echo -e "\\033[31m✗ $1\\033[0m"
+    echo -e "\033[31m✗ $1\033[0m"
 }
 
 print_warning() {
-    echo -e "\\033[33m⚠ $1\\033[0m"
+    echo -e "\033[33m⚠ $1\033[0m"
 }
 
 # 检查命令是否存在
@@ -184,7 +184,7 @@ if [ "$SKIP_INFRA" = false ]; then
     max_retries=15
     retries=0
     while [ $retries -lt $max_retries ]; do
-        if docker exec infra-kafka kafka-broker-api-versions --bootstrap-server localhost:9092 > /dev/null 2>&1 || \\
+        if docker exec infra-kafka kafka-broker-api-versions --bootstrap-server localhost:9092 > /dev/null 2>&1 || \
            docker ps --format '{{.Names}}' | grep -q "^infra-kafka$"; then
             # 检查 Kafka 容器是否健康
             kafka_status=$(docker inspect infra-kafka --format='{{.State.Status}}' 2>/dev/null || echo "not-found")
@@ -216,8 +216,8 @@ print_section "初始化秒杀服务"
 if command -v protoc > /dev/null; then
     if [ ! -f "api/seckill/v1/seckill.pb.go" ]; then
         print_info "生成秒杀服务 Proto 文件..."
-        protoc --go_out=. --go-grpc_out=. api/seckill/v1/seckill.proto 2>/dev/null && \\
-            print_success "秒杀服务 Proto 文件生成完成" || \\
+        protoc --go_out=. --go-grpc_out=. api/seckill/v1/seckill.proto 2>/dev/null && \
+            print_success "秒杀服务 Proto 文件生成完成" || \
             print_warning "秒杀服务 Proto 文件生成失败（可能已存在）"
     else
         print_success "秒杀服务 Proto 文件已存在"
@@ -619,3 +619,4 @@ while true; do
     
     sleep 5
 done
+
