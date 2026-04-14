@@ -13,11 +13,11 @@
 
 | # | 任务 | 状态 | 备注 |
 |---|------|------|------|
-| 1.1 | `internal/pkg/errors` — 扩展所有业务错误码，统一 `ConvertToGRPCError` 包级函数 | ⬜ | 删除各服务重复的 convertError |
-| 1.2 | `internal/pkg/cache` — 修复 `redis.Nil` 比较方式，补充库存原子扣减 Lua 脚本 | ⬜ | 当前用字符串比较 "redis: nil"，不可靠 |
-| 1.3 | `internal/pkg/idgen`（新建）— 统一单号生成器（订单号/支付单号/退款单号） | ⬜ | 基于 Redis INCR + 日期前缀 |
-| 1.4 | 所有服务 `NewServiceContext` — DB/Redis 初始化失败改为 `log.Fatal`，不静默放行 | ⬜ | 当前失败只打日志，后续会 nil panic |
-| 1.5 | `internal/pkg/middleware` — 统一 gRPC auth interceptor，各服务复用 | ⬜ | 当前 user/cart 各自实现了一套 |
+| 1.1 | `internal/pkg/errors` — 扩展所有业务错误码，统一 `ConvertToGRPCError` 包级函数 | ✅ | 删除各服务重复的 convertError |
+| 1.2 | `internal/pkg/cache` — 修复 `redis.Nil` 比较方式，补充库存原子扣减 Lua 脚本 | ✅ | 新增 `AtomicDeductStock` / `AtomicRollbackStock` / `IsNil` / `SetNX` |
+| 1.3 | `internal/pkg/idgen`（新建）— 统一单号生成器（订单号/支付单号/退款单号） | ✅ | 新建 `idgen.Generator`，基于 Redis INCR + 日期前缀，降级用纳秒时间戳 |
+| 1.4 | 所有服务 `NewServiceContext` — DB/Redis 初始化失败改为 `log.Fatal`，不静默放行 | ✅ | 新增 `MustNewMySQL` / `MustNewRedis`，11 个服务全部更新 |
+| 1.5 | `internal/pkg/middleware` — 统一 gRPC auth interceptor，各服务复用 | ✅ | 新增 `AuthInterceptor` + `RequireAuthInterceptor`，删除 user/cart 各自的 interceptor 目录 |
 
 ---
 
@@ -64,3 +64,4 @@
 | 时间 | 变更内容 |
 |------|---------|
 | 2026-04-14 | 创建计划文档，建立 feature 分支 |
+| 2026-04-14 | Step 1 完成：pkg/errors、cache、idgen、middleware 重写；所有 ServiceContext 修复；`go build ./...` 通过 |
