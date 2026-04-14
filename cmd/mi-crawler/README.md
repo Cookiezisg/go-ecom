@@ -13,44 +13,7 @@
 
 ## 安装依赖
 
-### 配置 pip 镜像源（推荐，加速下载）
-
-**方法1: 临时使用（单次安装）**
-```bash
-pip install -r requirements.txt -i https://pypi.tuna.tsinghua.edu.cn/simple
-```
-
-**方法2: 永久配置（推荐）**
-
-**macOS/Linux:**
-```bash
-mkdir -p ~/.pip
-cat > ~/.pip/pip.conf << EOF
-[global]
-index-url = https://pypi.tuna.tsinghua.edu.cn/simple
-trusted-host = pypi.tuna.tsinghua.edu.cn
-EOF
-```
-
-**Windows:**
-```cmd
-# 创建目录
-mkdir %APPDATA%\pip
-
-# 创建配置文件 pip.ini，内容如下：
-[global]
-index-url = https://pypi.tuna.tsinghua.edu.cn/simple
-trusted-host = pypi.tuna.tsinghua.edu.cn
-```
-
-**可用的镜像源：**
-- 清华大学: `https://pypi.tuna.tsinghua.edu.cn/simple` （推荐）
-- 阿里云: `https://mirrors.aliyun.com/pypi/simple/`
-- 中科大: `https://pypi.mirrors.ustc.edu.cn/simple/`
-- 豆瓣: `https://pypi.douban.com/simple/`
-- 腾讯云: `https://mirrors.cloud.tencent.com/pypi/simple`
-
-### 安装依赖
+默认直接从官方 PyPI 安装，不再默认使用国内镜像源。
 
 ```bash
 pip install -r requirements.txt
@@ -159,4 +122,3 @@ python main.py --max-subcategories-per-parent 5 --max-products-per-subcategory 5
 - ✅ 更适合处理 Vue.js 等前端框架渲染的页面
 - ⚠️ 运行速度较慢（需要启动浏览器）
 - ⚠️ 资源消耗较大（需要运行 Chrome）
-
