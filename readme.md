@@ -325,16 +325,20 @@ JWT:
 
 ---
 
-### Step 5 · Start All Services · 启动所有服务
+### Step 5 · Start Backend · 启动后端
 
 ```bash
-# Start API gateway + all microservices
-# 启动 API 网关 + 全部微服务
-make start-all
+# Start API gateway + all backend services
+# 启动 API 网关 + 全部后端服务
+make start-backend
+```
 
-# Or start microservices only (skip infra check)
-# 仅启动微服务（跳过基础设施检查）
-make start-services
+### Step 6 · Start Frontend · 启动前端
+
+```bash
+# Start both frontends in background
+# 后台启动两个前端
+make start-frontend
 ```
 
 启动完成后可访问：
@@ -346,22 +350,17 @@ make start-services
 | Frontend User | `http://localhost:5173` | 商城前台 |
 | Frontend Admin | `http://localhost:5174` | 管理后台 |
 
-前端启动命令：
-
-```bash
-cd frontend-user && npm install && npm run dev
-cd frontend-admin && npm install && npm run dev
-```
-
 说明：
 
 - 两个前端都已配置代理到 `http://localhost:8080`
+- `make start-frontend` 会自动检查并安装前端依赖
+- 前端日志输出到 `logs/frontend-user.log` 和 `logs/frontend-admin.log`
 - 文件上传走主 HTTP 服务的 `/api/v1/files/upload` 和 `/api/v1/files/batch-upload`
 - 这些上传接口不经过 gRPC Gateway 映射，而是由 `cmd/api-gateway` 中注册的 HTTP handler 直接处理
 
 ---
 
-### Step 6 · Seed Data (Optional) · 填充测试数据（可选）
+### Step 7 · Seed Data (Optional) · 填充测试数据（可选）
 
 ```bash
 cd cmd/mi-crawler

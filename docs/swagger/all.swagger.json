@@ -13,34 +13,13 @@
       "name": "CartService"
     },
     {
+      "name": "JobService"
+    },
+    {
       "name": "LogisticsService"
     },
     {
-      "name": "MessageService"
-    },
-    {
-      "name": "UserService"
-    },
-    {
       "name": "OrderService"
-    },
-    {
-      "name": "ProductService"
-    },
-    {
-      "name": "RecommendService"
-    },
-    {
-      "name": "PaymentService"
-    },
-    {
-      "name": "SearchService"
-    },
-    {
-      "name": "InventoryService"
-    },
-    {
-      "name": "PromotionService"
     },
     {
       "name": "ReviewService"
@@ -49,10 +28,31 @@
       "name": "SeckillService"
     },
     {
-      "name": "JobService"
+      "name": "UserService"
     },
     {
       "name": "FileService"
+    },
+    {
+      "name": "InventoryService"
+    },
+    {
+      "name": "PromotionService"
+    },
+    {
+      "name": "ProductService"
+    },
+    {
+      "name": "MessageService"
+    },
+    {
+      "name": "PaymentService"
+    },
+    {
+      "name": "RecommendService"
+    },
+    {
+      "name": "SearchService"
     }
   ],
   "consumes": [

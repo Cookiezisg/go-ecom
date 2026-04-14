@@ -1,6 +1,6 @@
 .PHONY: build build-service test lint clean proto proto-descriptor swagger api deps init help \
         run-user run-product run-seckill run-order-consumer \
-        start-all start-services start-infra stop-infra \
+        start-backend start-frontend start-infra stop-infra stop-frontend \
         seckill-init seckill-start seckill-stop seckill-full seckill-check \
         redis-cli redis-set-stock redis-get-stock redis-list-stocks
 
@@ -130,13 +130,55 @@ run-order-consumer: ## Run order service consumer (dev)
 	$(GOBUILD) -o bin/order-service-consumer ./cmd/order-service-consumer && ./bin/order-service-consumer -f configs/dev/order-config.yaml
 
 
-start-all: ## Start all services (infrastructure + microservices)
-	@echo "Starting all services..."
+start-backend: ## Start all backend services
+	@echo "Starting backend services..."
 	@chmod +x scripts/start-all.sh && ./scripts/start-all.sh --gateway
 
-start-services: ## Start microservices only (skip infrastructure)
-	@echo "Starting microservices (skipping infrastructure)..."
-	@chmod +x scripts/start-all.sh && ./scripts/start-all.sh --gateway --skip-infra
+start-frontend: ## Start frontend-user and frontend-admin in background
+	@echo "Starting frontends..."
+	@mkdir -p logs
+	@if [ ! -d frontend-user/node_modules ]; then \
+		echo "Installing frontend-user dependencies..."; \
+		cd frontend-user && npm install; \
+	fi
+	@if [ ! -d frontend-admin/node_modules ]; then \
+		echo "Installing frontend-admin dependencies..."; \
+		cd frontend-admin && npm install; \
+	fi
+	@if [ -f /tmp/frontend-user.pid ] && kill -0 $$(cat /tmp/frontend-user.pid) 2>/dev/null; then \
+		echo "frontend-user is already running (PID: $$(cat /tmp/frontend-user.pid))"; \
+	else \
+		cd frontend-user && nohup npm run dev -- --host 0.0.0.0 > ../logs/frontend-user.log 2>&1 & \
+		echo $$! > /tmp/frontend-user.pid; \
+		echo "frontend-user started: http://localhost:5173 (PID: $$(cat /tmp/frontend-user.pid))"; \
+		echo "log file: logs/frontend-user.log"; \
+	fi
+	@if [ -f /tmp/frontend-admin.pid ] && kill -0 $$(cat /tmp/frontend-admin.pid) 2>/dev/null; then \
+		echo "frontend-admin is already running (PID: $$(cat /tmp/frontend-admin.pid))"; \
+	else \
+		cd frontend-admin && nohup npm run dev -- --host 0.0.0.0 > ../logs/frontend-admin.log 2>&1 & \
+		echo $$! > /tmp/frontend-admin.pid; \
+		echo "frontend-admin started: http://localhost:5174 (PID: $$(cat /tmp/frontend-admin.pid))"; \
+		echo "log file: logs/frontend-admin.log"; \
+	fi
+	@echo ""
+	@echo "Frontends started:"
+	@echo "  - frontend-user:  http://localhost:5173"
+	@echo "  - frontend-admin: http://localhost:5174"
+
+stop-frontend: ## Stop frontend-user and frontend-admin
+	@echo "Stopping frontends..."
+	@if [ -f /tmp/frontend-user.pid ]; then \
+		kill $$(cat /tmp/frontend-user.pid) 2>/dev/null && rm /tmp/frontend-user.pid || echo "frontend-user not running"; \
+	else \
+		pkill -f "frontend-user.*vite" || echo "frontend-user not running"; \
+	fi
+	@if [ -f /tmp/frontend-admin.pid ]; then \
+		kill $$(cat /tmp/frontend-admin.pid) 2>/dev/null && rm /tmp/frontend-admin.pid || echo "frontend-admin not running"; \
+	else \
+		pkill -f "frontend-admin.*vite" || echo "frontend-admin not running"; \
+	fi
+	@echo "Frontends stopped."
 
 start-infra: ## Start infrastructure services (Docker Compose)
 	@echo "Starting infrastructure services..."
@@ -255,6 +297,4 @@ seckill-full: start-infra seckill-init seckill-start ## Full seckill setup (infr
 	@echo ""
 
 .DEFAULT_GOAL := help
-
-
 
