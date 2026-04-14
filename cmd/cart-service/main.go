@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	cartpb "ecommerce-system/api/cart/v1"
+	"ecommerce-system/internal/pkg/middleware"
 	"ecommerce-system/internal/service/cart"
-	"ecommerce-system/internal/service/cart/interceptor"
 )
 
 var configFile = flag.String("f", "configs/dev/cart-config.yaml", "配置文件路径")
@@ -41,7 +41,7 @@ func main() {
 	})
 
 	// 添加认证拦截器
-	s.AddUnaryInterceptors(interceptor.AuthInterceptor(jwtSecret))
+	s.AddUnaryInterceptors(middleware.AuthInterceptor(jwtSecret))
 	defer s.Stop()
 
 	fmt.Printf("购物车服务启动在 %s\\n", c.ListenOn)

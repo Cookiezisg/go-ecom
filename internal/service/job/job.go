@@ -1,7 +1,6 @@
 package job
 
 import (
-	"github.com/zeromicro/go-zero/core/logx"
 	"gorm.io/gorm"
 
 	"ecommerce-system/internal/pkg/database"
@@ -16,12 +15,9 @@ type ServiceContext struct {
 	CouponRepo repository.CouponRepository
 }
 
-// NewServiceContext 创建服务上下文
+// NewServiceContext 创建服务上下文。DB 初始化失败直接 Fatal，不静默放行。
 func NewServiceContext(c Config) *ServiceContext {
-	var db *gorm.DB
-	var err error
-
-	db, err = database.NewMySQL(&database.Config{
+	db := database.MustNewMySQL(&database.Config{
 		Host:            c.Database.Host,
 		Port:            c.Database.Port,
 		User:            c.Database.User,
@@ -33,19 +29,11 @@ func NewServiceContext(c Config) *ServiceContext {
 		ConnMaxLifetime: c.Database.ConnMaxLifetime,
 		ConnMaxIdleTime: c.Database.ConnMaxIdleTime,
 	})
-	if err != nil {
-		logx.Errorf("初始化数据库连接失败: %v", err)
-	}
 
-	ctx := &ServiceContext{
-		Config: c,
-		DB:     db,
+	return &ServiceContext{
+		Config:     c,
+		DB:         db,
+		OrderRepo:  repository.NewOrderRepository(db),
+		CouponRepo: repository.NewCouponRepository(db),
 	}
-
-	if db != nil {
-		ctx.OrderRepo = repository.NewOrderRepository(db)
-		ctx.CouponRepo = repository.NewCouponRepository(db)
-	}
-
-	return ctx
 }

@@ -2,8 +2,8 @@ package review
 
 import (
 	"context"
+	"log"
 
-	"github.com/zeromicro/go-zero/core/logx"
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 
@@ -21,13 +21,10 @@ type ServiceContext struct {
 	ReviewReplyRepo repository.ReviewReplyRepository
 }
 
-// NewServiceContext 创建服务上下文
+// NewServiceContext 创建服务上下文。DB 初始化失败直接 Fatal，不静默放行。
+// MongoDB 为可选依赖（无 MongoDB 时评价图片等富媒体字段不可用）。
 func NewServiceContext(c Config) *ServiceContext {
-	var db *gorm.DB
-	var err error
-
-	// 初始化数据库连接
-	db, err = database.NewMySQL(&database.Config{
+	db := database.MustNewMySQL(&database.Config{
 		Host:            c.Database.Host,
 		Port:            c.Database.Port,
 		User:            c.Database.User,
@@ -39,16 +36,15 @@ func NewServiceContext(c Config) *ServiceContext {
 		ConnMaxLifetime: c.Database.ConnMaxLifetime,
 		ConnMaxIdleTime: c.Database.ConnMaxIdleTime,
 	})
-	if err != nil {
-		logx.Errorf("初始化数据库连接失败: %v", err)
-	}
 
 	ctx := &ServiceContext{
-		Config: c,
-		DB:     db,
+		Config:          c,
+		DB:              db,
+		ReviewRepo:      repository.NewReviewRepository(db, nil),
+		ReviewReplyRepo: repository.NewReviewReplyRepository(db),
 	}
 
-	// 初始化MongoDB客户端（用于存储评价详情，包含图片、视频）
+	// MongoDB 可选（存储评价富媒体内容）
 	if c.MongoDB != nil && c.MongoDB.URI != "" && c.MongoDB.Database != "" {
 		mongoClient, err := mongodb.NewMongoDBClient(&mongodb.Config{
 			URI:            c.MongoDB.URI,
@@ -58,18 +54,13 @@ func NewServiceContext(c Config) *ServiceContext {
 			ConnectTimeout: 10,
 		})
 		if err != nil {
-			logx.Errorf("初始化MongoDB客户端失败: %v", err)
+			log.Printf("警告：初始化MongoDB客户端失败: %v", err)
 		} else {
 			ctx.MongoDB = mongoClient
-			// 初始化评价集合索引
 			_ = initReviewIndexes(context.Background(), mongoClient)
+			// 重新初始化 ReviewRepo，带上 MongoDB
+			ctx.ReviewRepo = repository.NewReviewRepository(db, mongoClient)
 		}
-	}
-
-	// 初始化Repository
-	if db != nil {
-		ctx.ReviewRepo = repository.NewReviewRepository(db, ctx.MongoDB)
-		ctx.ReviewReplyRepo = repository.NewReviewReplyRepository(db)
 	}
 
 	return ctx
@@ -77,33 +68,11 @@ func NewServiceContext(c Config) *ServiceContext {
 
 // initReviewIndexes 初始化评价集合索引
 func initReviewIndexes(ctx context.Context, mongoClient *mongodb.Client) error {
-	if mongoClient == nil {
-		return nil
-	}
-
-	// 创建评价集合索引
 	indexes := []mongo.IndexModel{
-		{
-			Keys: map[string]interface{}{
-				"product_id": 1,
-				"status":     1,
-				"created_at": -1,
-			},
-		},
-		{
-			Keys: map[string]interface{}{
-				"user_id":    1,
-				"created_at": -1,
-			},
-		},
-		{
-			Keys: map[string]interface{}{
-				"rating":     1,
-				"created_at": -1,
-			},
-		},
+		{Keys: map[string]interface{}{"product_id": 1, "status": 1, "created_at": -1}},
+		{Keys: map[string]interface{}{"user_id": 1, "created_at": -1}},
+		{Keys: map[string]interface{}{"rating": 1, "created_at": -1}},
 	}
-
 	collection := mongoClient.Collection("reviews")
 	_, err := collection.Indexes().CreateMany(ctx, indexes)
 	return err

@@ -11,8 +11,8 @@ import (
 	"google.golang.org/grpc/reflection"
 
 	userpb "ecommerce-system/api/user/v1"
+	"ecommerce-system/internal/pkg/middleware"
 	"ecommerce-system/internal/service/user"
-	"ecommerce-system/internal/service/user/interceptor"
 )
 
 var configFile = flag.String("f", "configs/dev/config.yaml", "配置文件路径")
@@ -47,7 +47,7 @@ func main() {
 		}
 	})
 	// 添加认证拦截器：从 metadata.authorization 解析 JWT，把 user_id 写进 ctx
-	s.AddUnaryInterceptors(interceptor.AuthInterceptor(jwtSecret))
+	s.AddUnaryInterceptors(middleware.AuthInterceptor(jwtSecret))
 	defer s.Stop()
 
 	fmt.Printf("用户服务启动在 %s\\n", c.ListenOn)

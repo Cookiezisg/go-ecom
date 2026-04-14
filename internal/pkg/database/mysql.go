@@ -2,6 +2,7 @@ package database
 
 import (
 	"fmt"
+	"log"
 	"os"
 	"time"
 
@@ -115,4 +116,13 @@ func NewMySQL(cfg *Config) (*gorm.DB, error) {
 	}
 
 	return db, nil
+}
+
+// MustNewMySQL 创建 MySQL 连接，失败时直接 Fatal（用于服务启动阶段）
+func MustNewMySQL(cfg *Config) *gorm.DB {
+	db, err := NewMySQL(cfg)
+	if err != nil {
+		log.Fatalf("初始化数据库连接失败: %v", err)
+	}
+	return db
 }

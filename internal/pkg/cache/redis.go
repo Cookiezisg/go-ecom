@@ -3,6 +3,7 @@ package cache
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/redis/go-redis/v9"
@@ -37,4 +38,13 @@ func NewRedis(cfg *Config) (*redis.Client, error) {
 	}
 
 	return rdb, nil
+}
+
+// MustNewRedis 创建 Redis 连接，失败时直接 Fatal（用于服务启动阶段）
+func MustNewRedis(cfg *Config) *redis.Client {
+	rdb, err := NewRedis(cfg)
+	if err != nil {
+		log.Fatalf("初始化Redis连接失败: %v", err)
+	}
+	return rdb
 }

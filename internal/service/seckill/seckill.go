@@ -1,15 +1,16 @@
 package seckill
 
 import (
-	"github.com/redis/go-redis/v9"
-	"github.com/zeromicro/go-zero/core/logx"
-	"gorm.io/gorm"
+	"log"
 
 	v1 "ecommerce-system/api/seckill/v1"
 	"ecommerce-system/internal/pkg/cache"
 	"ecommerce-system/internal/pkg/database"
 	"ecommerce-system/internal/pkg/mq"
 	"ecommerce-system/internal/service/seckill/repository"
+
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 // ServiceContext 服务上下文
@@ -22,14 +23,9 @@ type ServiceContext struct {
 	SeckillActivityRepo repository.SeckillActivityRepository
 }
 
-// NewServiceContext 创建服务上下文
+// NewServiceContext 创建服务上下文。DB/Redis 初始化失败直接 Fatal，不静默放行。
 func NewServiceContext(c Config) *ServiceContext {
-	var db *gorm.DB
-	var redisClient *redis.Client
-	var err error
-
-	// 初始化数据库连接
-	db, err = database.NewMySQL(&database.Config{
+	db := database.MustNewMySQL(&database.Config{
 		Host:            c.Database.Host,
 		Port:            c.Database.Port,
 		User:            c.Database.User,
@@ -41,12 +37,8 @@ func NewServiceContext(c Config) *ServiceContext {
 		ConnMaxLifetime: c.Database.ConnMaxLifetime,
 		ConnMaxIdleTime: c.Database.ConnMaxIdleTime,
 	})
-	if err != nil {
-		logx.Errorf("初始化数据库连接失败: %v", err)
-	}
 
-	// 初始化Redis连接
-	redisClient, err = cache.NewRedis(&cache.Config{
+	rdb := cache.MustNewRedis(&cache.Config{
 		Host:         c.BizRedis.Host,
 		Port:         c.BizRedis.Port,
 		Password:     c.BizRedis.Password,
@@ -54,22 +46,16 @@ func NewServiceContext(c Config) *ServiceContext {
 		PoolSize:     c.BizRedis.PoolSize,
 		MinIdleConns: c.BizRedis.MinIdleConns,
 	})
-	if err != nil {
-		logx.Errorf("初始化Redis连接失败: %v", err)
-	}
 
 	ctx := &ServiceContext{
-		Config: c,
-		DB:     db,
-		Redis:  redisClient,
+		Config:              c,
+		DB:                  db,
+		Redis:               rdb,
+		Cache:               cache.NewCacheOperations(rdb),
+		SeckillActivityRepo: repository.NewSeckillActivityRepository(db),
 	}
 
-	// 初始化缓存操作（仅在Redis连接成功时）
-	if redisClient != nil {
-		ctx.Cache = cache.NewCacheOperations(redisClient)
-	}
-
-	// 初始化Kafka生产者
+	// Kafka 生产者可选（不影响秒杀主逻辑）
 	if len(c.Kafka.Brokers) > 0 {
 		mqProducer, err := mq.NewProducer(&mq.Config{
 			Brokers:       c.Kafka.Brokers,
@@ -77,15 +63,10 @@ func NewServiceContext(c Config) *ServiceContext {
 			ProducerAsync: true,
 		})
 		if err != nil {
-			logx.Errorf("初始化Kafka生产者失败: %v", err)
+			log.Printf("警告：初始化Kafka生产者失败: %v", err)
 		} else {
 			ctx.MQProducer = mqProducer
 		}
-	}
-
-	// 初始化 Repository
-	if db != nil {
-		ctx.SeckillActivityRepo = repository.NewSeckillActivityRepository(db)
 	}
 
 	return ctx
@@ -99,7 +80,5 @@ type SeckillService struct {
 
 // NewSeckillService 创建秒杀服务
 func NewSeckillService(svcCtx *ServiceContext) *SeckillService {
-	return &SeckillService{
-		svcCtx: svcCtx,
-	}
+	return &SeckillService{svcCtx: svcCtx}
 }

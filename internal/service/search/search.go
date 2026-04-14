@@ -2,36 +2,33 @@ package search
 
 import (
 	"context"
-
-	"github.com/redis/go-redis/v9"
-	"github.com/zeromicro/go-zero/core/logx"
-	"gorm.io/gorm"
+	"log"
 
 	"ecommerce-system/internal/pkg/cache"
 	"ecommerce-system/internal/pkg/database"
 	"ecommerce-system/internal/pkg/mq"
-	"ecommerce-system/internal/pkg/search"
+	pkgsearch "ecommerce-system/internal/pkg/search"
 	"ecommerce-system/internal/service/search/repository"
+
+	"github.com/redis/go-redis/v9"
+	"gorm.io/gorm"
 )
 
 // ServiceContext 服务上下文
 type ServiceContext struct {
 	Config       Config
 	Redis        *redis.Client
-	ESClient     *search.Client
+	ESClient     *pkgsearch.Client
 	DB           *gorm.DB
 	MQConsumer   *mq.Consumer
 	SearchRepo   repository.SearchRepository
 	SnapshotRepo repository.ProductSnapshotRepository
 }
 
-// NewServiceContext 创建服务上下文
+// NewServiceContext 创建服务上下文。Redis/DB 初始化失败直接 Fatal，不静默放行。
+// ES 和 Kafka 消费者为可选依赖（搜索服务在没有 ES 时降级）。
 func NewServiceContext(c Config) *ServiceContext {
-	var redisClient *redis.Client
-	var err error
-
-	// 初始化Redis连接（用于缓存搜索热词等）
-	redisClient, err = cache.NewRedis(&cache.Config{
+	rdb := cache.MustNewRedis(&cache.Config{
 		Host:         c.BizRedis.Host,
 		Port:         c.BizRedis.Port,
 		Password:     c.BizRedis.Password,
@@ -39,32 +36,8 @@ func NewServiceContext(c Config) *ServiceContext {
 		PoolSize:     c.BizRedis.PoolSize,
 		MinIdleConns: c.BizRedis.MinIdleConns,
 	})
-	if err != nil {
-		logx.Errorf("初始化Redis连接失败: %v", err)
-	}
 
-	ctx := &ServiceContext{
-		Config: c,
-		Redis:  redisClient,
-	}
-
-	// 初始化Elasticsearch客户端
-	if len(c.Elasticsearch.Addresses) > 0 {
-		esClient, err := search.NewElasticsearchClient(&search.Config{
-			Addresses: c.Elasticsearch.Addresses,
-			Username:  c.Elasticsearch.Username,
-			Password:  c.Elasticsearch.Password,
-		})
-		if err != nil {
-			logx.Errorf("初始化Elasticsearch客户端失败: %v", err)
-		} else {
-			ctx.ESClient = esClient
-		}
-	}
-
-	// 初始化数据库连接（读取商品快照）
-	var db *gorm.DB
-	db, err = database.NewMySQL(&database.Config{
+	db := database.MustNewMySQL(&database.Config{
 		Host:            c.Database.Host,
 		Port:            c.Database.Port,
 		User:            c.Database.User,
@@ -76,24 +49,32 @@ func NewServiceContext(c Config) *ServiceContext {
 		ConnMaxLifetime: c.Database.ConnMaxLifetime,
 		ConnMaxIdleTime: c.Database.ConnMaxIdleTime,
 	})
-	if err != nil {
-		logx.Errorf("初始化数据库连接失败: %v", err)
-	} else {
-		ctx.DB = db
+
+	ctx := &ServiceContext{
+		Config:       c,
+		Redis:        rdb,
+		DB:           db,
+		SnapshotRepo: repository.NewProductSnapshotRepository(db),
 	}
 
-	// 初始化Repository
-	ctx.SearchRepo = repository.NewSearchRepository(redisClient, ctx.ESClient)
-	if ctx.DB != nil {
-		ctx.SnapshotRepo = repository.NewProductSnapshotRepository(ctx.DB)
+	// Elasticsearch 可选（无 ES 时搜索降级为 MySQL 全文检索）
+	if len(c.Elasticsearch.Addresses) > 0 {
+		esClient, err := pkgsearch.NewElasticsearchClient(&pkgsearch.Config{
+			Addresses: c.Elasticsearch.Addresses,
+			Username:  c.Elasticsearch.Username,
+			Password:  c.Elasticsearch.Password,
+		})
+		if err != nil {
+			log.Printf("警告：初始化Elasticsearch客户端失败: %v", err)
+		} else {
+			ctx.ESClient = esClient
+			_ = esClient.CreateIndex(context.Background(), repository.ProductIndexName, repository.ProductIndexMapping)
+		}
 	}
 
-	// 确保 ES 索引存在（用于全文检索）
-	if ctx.ESClient != nil {
-		_ = ctx.ESClient.CreateIndex(context.Background(), repository.ProductIndexName, repository.ProductIndexMapping)
-	}
+	ctx.SearchRepo = repository.NewSearchRepository(rdb, ctx.ESClient)
 
-	// 初始化 Kafka 消费者（用于消费 outbox relay 投递的同步消息）
+	// Kafka 消费者可选（用于监听商品数据变更事件，同步到 ES）
 	if len(c.Kafka.Brokers) > 0 && c.Kafka.ConsumerGroup != "" {
 		consumer, err := mq.NewConsumer(&mq.Config{
 			Brokers:       c.Kafka.Brokers,
@@ -101,14 +82,12 @@ func NewServiceContext(c Config) *ServiceContext {
 			ConsumerGroup: c.Kafka.ConsumerGroup,
 		})
 		if err != nil {
-			logx.Errorf("初始化Kafka消费者失败: %v", err)
+			log.Printf("警告：初始化Kafka消费者失败: %v", err)
 		} else {
 			ctx.MQConsumer = consumer
-			// 注册处理器：只关心商品相关事件
 			ctx.MQConsumer.RegisterHandler(mq.TopicDataSync, func(cctx context.Context, msg *mq.Message) error {
 				return ctx.handleDataSyncMessage(cctx, msg)
 			})
-			// 启动消费循环
 			go func() {
 				_ = ctx.MQConsumer.Start(context.Background(), []string{mq.TopicDataSync})
 			}()
