@@ -3,7 +3,9 @@ package logistics
 import (
 	"gorm.io/gorm"
 
+	"ecommerce-system/internal/pkg/cache"
 	"ecommerce-system/internal/pkg/database"
+	"ecommerce-system/internal/pkg/idgen"
 	"ecommerce-system/internal/service/logistics/repository"
 )
 
@@ -11,6 +13,7 @@ import (
 type ServiceContext struct {
 	Config        Config
 	DB            *gorm.DB
+	IDGen         *idgen.Generator
 	LogisticsRepo repository.LogisticsRepository
 }
 
@@ -29,9 +32,23 @@ func NewServiceContext(c Config) *ServiceContext {
 		ConnMaxIdleTime: c.Database.ConnMaxIdleTime,
 	})
 
+	var ig *idgen.Generator
+	if c.BizRedis.Host != "" {
+		rdb := cache.MustNewRedis(&cache.Config{
+			Host:         c.BizRedis.Host,
+			Port:         c.BizRedis.Port,
+			Password:     c.BizRedis.Password,
+			Database:     c.BizRedis.Database,
+			PoolSize:     c.BizRedis.PoolSize,
+			MinIdleConns: c.BizRedis.MinIdleConns,
+		})
+		ig = idgen.New(rdb)
+	}
+
 	return &ServiceContext{
 		Config:        c,
 		DB:            db,
+		IDGen:         ig,
 		LogisticsRepo: repository.NewLogisticsRepository(db),
 	}
 }

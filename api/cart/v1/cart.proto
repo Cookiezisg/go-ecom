@@ -31,6 +31,13 @@ message CartItem {
   int32 is_selected = 5;
   string created_at = 6;
   string updated_at = 7;
+  // 商品富信息（AddItem / GetCart 时由 product 服务填充）
+  int64 product_id = 8;
+  string product_name = 9;
+  string sku_name = 10;
+  string sku_image = 11;
+  string price = 12; // 单价（字符串保留精度）
+  string stock_status = 13; // "in_stock" | "low_stock" | "out_of_stock"
 }
 
 // 获取购物车请求

@@ -53,3 +53,7 @@ Database:
   ConnMaxLifetime: 3600
   ConnMaxIdleTime: 600
 
+# 下游服务地址
+InventoryRpc:
+  Endpoint: 127.0.0.1:8084
+

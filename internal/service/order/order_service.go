@@ -10,9 +10,6 @@ import (
 	apperrors "ecommerce-system/internal/pkg/errors"
 	"ecommerce-system/internal/service/order/model"
 	"ecommerce-system/internal/service/order/service"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // CreateOrder 创建订单
@@ -151,49 +148,60 @@ func (s *OrderService) CancelOrder(ctx context.Context, req *v1.CancelOrderReque
 
 // ConfirmReceive 确认收货
 func (s *OrderService) ConfirmReceive(ctx context.Context, req *v1.ConfirmReceiveRequest) (*v1.ConfirmReceiveResponse, error) {
-	// 转换请求
-	confirmReq := &service.ConfirmReceiveRequest{
+	_, err := s.logic.ConfirmReceive(ctx, &service.ConfirmReceiveRequest{
 		ID:      uint64(req.Id),
 		OrderNo: req.OrderNo,
-	}
-
-	// 调用业务逻辑
-	_, err := s.logic.ConfirmReceive(ctx, confirmReq)
+	})
 	if err != nil {
 		return nil, convertError(err)
 	}
-
-	return &v1.ConfirmReceiveResponse{
-		Code:    0,
-		Message: "确认收货成功",
-	}, nil
+	return &v1.ConfirmReceiveResponse{Code: 0, Message: "确认收货成功"}, nil
 }
 
-// convertError 转换业务错误为 gRPC 错误
+// PayOrder 支付成功通知
+func (s *OrderService) PayOrder(ctx context.Context, req *v1.PayOrderRequest) (*v1.PayOrderResponse, error) {
+	err := s.logic.PayOrder(ctx, &service.PayOrderRequest{
+		OrderID:       uint64(req.OrderId),
+		OrderNo:       req.OrderNo,
+		PaymentMethod: int8(req.PaymentMethod),
+		PaymentNo:     req.PaymentNo,
+	})
+	if err != nil {
+		return nil, convertError(err)
+	}
+	return &v1.PayOrderResponse{Code: 0, Message: "成功"}, nil
+}
+
+// ShipOrder 发货通知
+func (s *OrderService) ShipOrder(ctx context.Context, req *v1.ShipOrderRequest) (*v1.ShipOrderResponse, error) {
+	err := s.logic.ShipOrder(ctx, &service.ShipOrderRequest{
+		OrderID:    uint64(req.OrderId),
+		OrderNo:    req.OrderNo,
+		TrackingNo: req.TrackingNo,
+		Carrier:    req.Carrier,
+	})
+	if err != nil {
+		return nil, convertError(err)
+	}
+	return &v1.ShipOrderResponse{Code: 0, Message: "成功"}, nil
+}
+
+// RefundOrder 退款通知
+func (s *OrderService) RefundOrder(ctx context.Context, req *v1.RefundOrderRequest) (*v1.RefundOrderResponse, error) {
+	err := s.logic.RefundOrder(ctx, &service.RefundOrderRequest{
+		OrderID: uint64(req.OrderId),
+		OrderNo: req.OrderNo,
+		Reason:  req.Reason,
+	})
+	if err != nil {
+		return nil, convertError(err)
+	}
+	return &v1.RefundOrderResponse{Code: 0, Message: "成功"}, nil
+}
+
+// convertError 转换业务错误为 gRPC 错误（统一委托给 pkg/errors）
 func convertError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	// 检查是否是 BusinessError
-	if bizErr, ok := err.(*apperrors.BusinessError); ok {
-		var grpcCode codes.Code
-		switch bizErr.Code {
-		case apperrors.CodeNotFound, apperrors.CodeOrderNotFound:
-			grpcCode = codes.NotFound
-		case apperrors.CodeInvalidParam:
-			grpcCode = codes.InvalidArgument
-		case apperrors.CodeUnauthorized:
-			grpcCode = codes.Unauthenticated
-		case apperrors.CodeForbidden:
-			grpcCode = codes.PermissionDenied
-		default:
-			grpcCode = codes.Internal
-		}
-		return status.Error(grpcCode, bizErr.Error())
-	}
-
-	return status.Error(codes.Internal, err.Error())
+	return apperrors.ConvertToGRPCError(err)
 }
 
 // convertOrderToProto 转换订单模型为 Protobuf 消息

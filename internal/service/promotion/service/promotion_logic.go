@@ -82,7 +82,7 @@ func (l *PromotionLogic) ReceiveCoupon(ctx context.Context, req *ReceiveCouponRe
 		return apperrors.NewError(7002, "优惠券不在有效期内")
 	}
 
-	// 检查是否还有剩余
+	// 检查是否还有剩余（乐观快检，最终由 IncrUsedCount 的 WHERE 保证原子性）
 	if coupon.TotalCount > 0 && coupon.UsedCount >= coupon.TotalCount {
 		return apperrors.NewError(7003, "优惠券已领完")
 	}
@@ -96,6 +96,15 @@ func (l *PromotionLogic) ReceiveCoupon(ctx context.Context, req *ReceiveCouponRe
 		return apperrors.NewError(7004, "已达到限领数量")
 	}
 
+	// 原子递增 used_count（WHERE 确保不超发，避免并发 TOCTOU 竞态）
+	affected, err := l.couponRepo.IncrUsedCount(ctx, req.CouponID)
+	if err != nil {
+		return apperrors.NewInternalError("领取优惠券失败")
+	}
+	if affected == 0 {
+		return apperrors.NewError(7003, "优惠券已领完")
+	}
+
 	// 创建用户优惠券
 	userCoupon := &model.UserCoupon{
 		UserID:    req.UserID,
@@ -105,14 +114,9 @@ func (l *PromotionLogic) ReceiveCoupon(ctx context.Context, req *ReceiveCouponRe
 		CreatedAt: time.Now(),
 	}
 
-	err = l.userCouponRepo.Create(ctx, userCoupon)
-	if err != nil {
+	if err = l.userCouponRepo.Create(ctx, userCoupon); err != nil {
 		return apperrors.NewInternalError("领取优惠券失败")
 	}
-
-	// 更新优惠券已使用数量
-	coupon.UsedCount++
-	_ = l.couponRepo.Update(ctx, coupon)
 
 	return nil
 }

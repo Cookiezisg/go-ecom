@@ -24,6 +24,7 @@ func NewReviewService(svcCtx *ServiceContext) *ReviewService {
 	logic := service.NewReviewLogic(
 		svcCtx.ReviewRepo,
 		svcCtx.ReviewReplyRepo,
+		svcCtx.OrderClient,
 	)
 
 	return &ReviewService{

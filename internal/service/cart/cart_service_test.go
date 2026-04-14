@@ -7,6 +7,7 @@ import (
 
 	apperrors "ecommerce-system/internal/pkg/errors"
 	"ecommerce-system/internal/service/cart/model"
+	"ecommerce-system/internal/service/cart/service"
 
 	"google.golang.org/grpc/codes"
 	"google.golang.org/grpc/status"
@@ -32,10 +33,10 @@ func TestConvertErrorNil(t *testing.T) {
 	}
 }
 
-func TestConvertCartItemToProto(t *testing.T) {
+func TestConvertDetailToProto(t *testing.T) {
 	createdAt := time.Date(2026, 3, 4, 10, 20, 30, 0, time.UTC)
 	updatedAt := time.Date(2026, 3, 4, 11, 20, 30, 0, time.UTC)
-	item := &model.Cart{
+	cart := &model.Cart{
 		ID:         1,
 		UserID:     100,
 		SkuID:      200,
@@ -44,8 +45,16 @@ func TestConvertCartItemToProto(t *testing.T) {
 		CreatedAt:  createdAt,
 		UpdatedAt:  updatedAt,
 	}
+	detail := &service.CartItemDetail{
+		Cart:        cart,
+		ProductID:   10,
+		ProductName: "Test Product",
+		SkuName:     "Red M",
+		Price:       99.9,
+		StockStatus: "in_stock",
+	}
 
-	got := convertCartItemToProto(item)
+	got := convertDetailToProto(detail)
 	if got == nil {
 		t.Fatal("expected non-nil proto item")
 	}
@@ -58,13 +67,16 @@ func TestConvertCartItemToProto(t *testing.T) {
 	if got.CreatedAt != createdAt.Format(time.RFC3339) {
 		t.Fatalf("unexpected created_at: %s", got.CreatedAt)
 	}
-	if got.UpdatedAt != updatedAt.Format(time.RFC3339) {
-		t.Fatalf("unexpected updated_at: %s", got.UpdatedAt)
+	if got.ProductId != 10 || got.ProductName != "Test Product" {
+		t.Fatalf("unexpected product info: %+v", got)
+	}
+	if got.StockStatus != "in_stock" {
+		t.Fatalf("unexpected stock_status: %s", got.StockStatus)
 	}
 }
 
-func TestConvertCartItemToProtoNil(t *testing.T) {
-	if got := convertCartItemToProto(nil); got != nil {
+func TestConvertDetailToProtoNil(t *testing.T) {
+	if got := convertDetailToProto(nil); got != nil {
 		t.Fatalf("expected nil, got %+v", got)
 	}
 }

@@ -22,6 +22,7 @@ func NewJobService(svcCtx *ServiceContext) *JobService {
 	logic := service.NewJobLogic(
 		svcCtx.OrderRepo,
 		svcCtx.CouponRepo,
+		svcCtx.InvClient,
 	)
 
 	return &JobService{

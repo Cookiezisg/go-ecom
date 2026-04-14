@@ -7,6 +7,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"gorm.io/gorm"
 
+	"ecommerce-system/internal/pkg/client"
 	"ecommerce-system/internal/pkg/database"
 	"ecommerce-system/internal/pkg/mongodb"
 	"ecommerce-system/internal/service/review/repository"
@@ -17,6 +18,7 @@ type ServiceContext struct {
 	Config          Config
 	DB              *gorm.DB
 	MongoDB         *mongodb.Client
+	OrderClient     *client.OrderClient
 	ReviewRepo      repository.ReviewRepository
 	ReviewReplyRepo repository.ReviewReplyRepository
 }
@@ -42,6 +44,15 @@ func NewServiceContext(c Config) *ServiceContext {
 		DB:              db,
 		ReviewRepo:      repository.NewReviewRepository(db, nil),
 		ReviewReplyRepo: repository.NewReviewReplyRepository(db),
+	}
+
+	// 订单服务客户端（用于校验订单状态，可选）
+	if c.OrderRpc.Endpoint != "" {
+		oc, err := client.NewOrderClient(c.OrderRpc)
+		if err != nil {
+			log.Fatalf("初始化订单服务客户端失败: %v", err)
+		}
+		ctx.OrderClient = oc
 	}
 
 	// MongoDB 可选（存储评价富媒体内容）

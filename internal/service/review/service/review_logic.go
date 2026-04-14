@@ -4,25 +4,32 @@ import (
 	"context"
 	"time"
 
+	"ecommerce-system/internal/pkg/client"
 	apperrors "ecommerce-system/internal/pkg/errors"
 	"ecommerce-system/internal/service/review/model"
 	"ecommerce-system/internal/service/review/repository"
 )
 
+// orderStatusCompleted 订单已完成状态（proto Order.status = 4）
+const orderStatusCompleted = 4
+
 // ReviewLogic 评价业务逻辑
 type ReviewLogic struct {
 	reviewRepo      repository.ReviewRepository
 	reviewReplyRepo repository.ReviewReplyRepository
+	orderClient     *client.OrderClient
 }
 
 // NewReviewLogic 创建评价业务逻辑
 func NewReviewLogic(
 	reviewRepo repository.ReviewRepository,
 	reviewReplyRepo repository.ReviewReplyRepository,
+	orderClient *client.OrderClient,
 ) *ReviewLogic {
 	return &ReviewLogic{
 		reviewRepo:      reviewRepo,
 		reviewReplyRepo: reviewReplyRepo,
+		orderClient:     orderClient,
 	}
 }
 
@@ -49,6 +56,21 @@ func (l *ReviewLogic) CreateReview(ctx context.Context, req *CreateReviewRequest
 	// 验证评分范围
 	if req.Rating < 1 || req.Rating > 5 {
 		return nil, apperrors.NewInvalidParamError("评分必须在1-5之间")
+	}
+
+	// 校验订单状态：必须是已完成订单才能评价
+	if l.orderClient != nil && req.OrderID > 0 {
+		order, err := l.orderClient.GetOrder(ctx, int64(req.OrderID), "")
+		if err != nil {
+			return nil, apperrors.NewNotFoundError("订单不存在")
+		}
+		if order.Status != orderStatusCompleted {
+			return nil, apperrors.NewError(apperrors.CodeForbidden, "订单未完成，无法评价")
+		}
+		// 校验订单归属当前用户
+		if order.UserId != int64(req.UserID) {
+			return nil, apperrors.NewError(apperrors.CodeForbidden, "无权评价该订单")
+		}
 	}
 
 	review := &model.Review{

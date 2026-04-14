@@ -2,12 +2,12 @@ package cart
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	v1 "ecommerce-system/api/cart/v1"
 	apperrors "ecommerce-system/internal/pkg/errors"
 	"ecommerce-system/internal/pkg/utils"
-	"ecommerce-system/internal/service/cart/model"
 	"ecommerce-system/internal/service/cart/service"
 
 	"google.golang.org/grpc/codes"
@@ -23,7 +23,7 @@ type CartService struct {
 
 // NewCartService 创建购物车服务
 func NewCartService(svcCtx *ServiceContext) *CartService {
-	logic := service.NewCartLogic(svcCtx.CartRepo)
+	logic := service.NewCartLogic(svcCtx.CartRepo, svcCtx.ProductClient, svcCtx.InvClient)
 
 	return &CartService{
 		svcCtx: svcCtx,
@@ -33,10 +33,8 @@ func NewCartService(svcCtx *ServiceContext) *CartService {
 
 // GetCart 获取购物车
 func (s *CartService) GetCart(ctx context.Context, req *v1.GetCartRequest) (*v1.GetCartResponse, error) {
-	// 从 context 中获取 user_id（由 JWT 中间件设置）
 	userID, ok := utils.GetUserID(ctx)
 	if !ok {
-		// 如果 context 中没有，尝试从请求参数获取（兼容性）
 		if req.UserId > 0 {
 			userID = uint64(req.UserId)
 		} else {
@@ -44,22 +42,16 @@ func (s *CartService) GetCart(ctx context.Context, req *v1.GetCartRequest) (*v1.
 		}
 	}
 
-	getReq := &service.GetCartRequest{
-		UserID: userID,
-	}
-
-	resp, err := s.logic.GetCart(ctx, getReq)
+	resp, err := s.logic.GetCart(ctx, &service.GetCartRequest{UserID: userID})
 	if err != nil {
 		return nil, convertError(err)
 	}
 
 	items := make([]*v1.CartItem, 0, len(resp.Items))
 	for _, item := range resp.Items {
-		items = append(items, convertCartItemToProto(item))
+		items = append(items, convertDetailToProto(item))
 	}
 
-	// 返回格式需要匹配前端期望的结构
-	// 注意：proto 定义中 data 是 repeated CartItem，直接返回数组
 	return &v1.GetCartResponse{
 		Code:    0,
 		Message: "成功",
@@ -69,10 +61,8 @@ func (s *CartService) GetCart(ctx context.Context, req *v1.GetCartRequest) (*v1.
 
 // AddItem 添加商品到购物车
 func (s *CartService) AddItem(ctx context.Context, req *v1.AddItemRequest) (*v1.AddItemResponse, error) {
-	// 从 context 中获取 user_id（由 JWT 中间件设置）
 	userID, ok := utils.GetUserID(ctx)
 	if !ok {
-		// 如果 context 中没有，尝试从请求参数获取（兼容性）
 		if req.UserId > 0 {
 			userID = uint64(req.UserId)
 		} else {
@@ -80,27 +70,40 @@ func (s *CartService) AddItem(ctx context.Context, req *v1.AddItemRequest) (*v1.
 		}
 	}
 
-	addReq := &service.AddItemRequest{
+	resp, err := s.logic.AddItem(ctx, &service.AddItemRequest{
 		UserID:   userID,
 		SkuID:    uint64(req.SkuId),
 		Quantity: int(req.Quantity),
-	}
-
-	resp, err := s.logic.AddItem(ctx, addReq)
+	})
 	if err != nil {
 		return nil, convertError(err)
+	}
+
+	item := &v1.CartItem{
+		Id:          int64(resp.Cart.ID),
+		UserId:      int64(resp.Cart.UserID),
+		SkuId:       int64(resp.Cart.SkuID),
+		Quantity:    int32(resp.Cart.Quantity),
+		IsSelected:  int32(resp.Cart.IsSelected),
+		CreatedAt:   formatTime(&resp.Cart.CreatedAt),
+		UpdatedAt:   formatTime(&resp.Cart.UpdatedAt),
+		ProductId:   resp.ProductID,
+		ProductName: resp.ProductName,
+		SkuName:     resp.SkuName,
+		SkuImage:    resp.SkuImage,
+		Price:       fmt.Sprintf("%.2f", resp.Price),
+		StockStatus: resp.StockStatus,
 	}
 
 	return &v1.AddItemResponse{
 		Code:    0,
 		Message: "添加成功",
-		Data:    convertCartItemToProto(resp.Cart),
+		Data:    item,
 	}, nil
 }
 
 // UpdateQuantity 更新商品数量
 func (s *CartService) UpdateQuantity(ctx context.Context, req *v1.UpdateQuantityRequest) (*v1.UpdateQuantityResponse, error) {
-	// 从 context 中获取 user_id（由 JWT 中间件设置）
 	userID, ok := utils.GetUserID(ctx)
 	if !ok {
 		if req.UserId > 0 {
@@ -110,26 +113,20 @@ func (s *CartService) UpdateQuantity(ctx context.Context, req *v1.UpdateQuantity
 		}
 	}
 
-	updateReq := &service.UpdateQuantityRequest{
+	err := s.logic.UpdateQuantity(ctx, &service.UpdateQuantityRequest{
 		UserID:   userID,
 		SkuID:    uint64(req.SkuId),
 		Quantity: int(req.Quantity),
-	}
-
-	err := s.logic.UpdateQuantity(ctx, updateReq)
+	})
 	if err != nil {
 		return nil, convertError(err)
 	}
 
-	return &v1.UpdateQuantityResponse{
-		Code:    0,
-		Message: "更新成功",
-	}, nil
+	return &v1.UpdateQuantityResponse{Code: 0, Message: "更新成功"}, nil
 }
 
 // RemoveItem 删除商品
 func (s *CartService) RemoveItem(ctx context.Context, req *v1.RemoveItemRequest) (*v1.RemoveItemResponse, error) {
-	// 从 context 中获取 user_id（由 JWT 中间件设置）
 	userID, ok := utils.GetUserID(ctx)
 	if !ok {
 		if req.UserId > 0 {
@@ -144,56 +141,36 @@ func (s *CartService) RemoveItem(ctx context.Context, req *v1.RemoveItemRequest)
 		skuIDs = append(skuIDs, uint64(id))
 	}
 
-	removeReq := &service.RemoveItemRequest{
-		UserID: userID,
-		SkuIDs: skuIDs,
-	}
-
-	err := s.logic.RemoveItem(ctx, removeReq)
+	err := s.logic.RemoveItem(ctx, &service.RemoveItemRequest{UserID: userID, SkuIDs: skuIDs})
 	if err != nil {
 		return nil, convertError(err)
 	}
 
-	return &v1.RemoveItemResponse{
-		Code:    0,
-		Message: "删除成功",
-	}, nil
+	return &v1.RemoveItemResponse{Code: 0, Message: "删除成功"}, nil
 }
 
 // ClearCart 清空购物车
 func (s *CartService) ClearCart(ctx context.Context, req *v1.ClearCartRequest) (*v1.ClearCartResponse, error) {
-	clearReq := &service.ClearCartRequest{
-		UserID: uint64(req.UserId),
-	}
-
-	err := s.logic.ClearCart(ctx, clearReq)
+	err := s.logic.ClearCart(ctx, &service.ClearCartRequest{UserID: uint64(req.UserId)})
 	if err != nil {
 		return nil, convertError(err)
 	}
 
-	return &v1.ClearCartResponse{
-		Code:    0,
-		Message: "清空成功",
-	}, nil
+	return &v1.ClearCartResponse{Code: 0, Message: "清空成功"}, nil
 }
 
 // SelectItem 选择/取消选择商品
 func (s *CartService) SelectItem(ctx context.Context, req *v1.SelectItemRequest) (*v1.SelectItemResponse, error) {
-	selectReq := &service.SelectItemRequest{
+	err := s.logic.SelectItem(ctx, &service.SelectItemRequest{
 		UserID:     uint64(req.UserId),
 		SkuID:      uint64(req.SkuId),
 		IsSelected: int8(req.IsSelected),
-	}
-
-	err := s.logic.SelectItem(ctx, selectReq)
+	})
 	if err != nil {
 		return nil, convertError(err)
 	}
 
-	return &v1.SelectItemResponse{
-		Code:    0,
-		Message: "操作成功",
-	}, nil
+	return &v1.SelectItemResponse{Code: 0, Message: "操作成功"}, nil
 }
 
 // BatchSelect 批量选择/取消选择
@@ -203,21 +180,16 @@ func (s *CartService) BatchSelect(ctx context.Context, req *v1.BatchSelectReques
 		skuIDs = append(skuIDs, uint64(id))
 	}
 
-	batchReq := &service.BatchSelectRequest{
+	err := s.logic.BatchSelect(ctx, &service.BatchSelectRequest{
 		UserID:     uint64(req.UserId),
 		SkuIDs:     skuIDs,
 		IsSelected: int8(req.IsSelected),
-	}
-
-	err := s.logic.BatchSelect(ctx, batchReq)
+	})
 	if err != nil {
 		return nil, convertError(err)
 	}
 
-	return &v1.BatchSelectResponse{
-		Code:    0,
-		Message: "操作成功",
-	}, nil
+	return &v1.BatchSelectResponse{Code: 0, Message: "操作成功"}, nil
 }
 
 // convertError 转换业务错误为 gRPC 错误
@@ -226,7 +198,6 @@ func convertError(err error) error {
 		return nil
 	}
 
-	// 检查是否是 BusinessError
 	if bizErr, ok := err.(*apperrors.BusinessError); ok {
 		var grpcCode codes.Code
 		switch bizErr.Code {
@@ -238,6 +209,8 @@ func convertError(err error) error {
 			grpcCode = codes.Unauthenticated
 		case apperrors.CodeForbidden:
 			grpcCode = codes.PermissionDenied
+		case apperrors.CodeStockInsufficient:
+			grpcCode = codes.ResourceExhausted
 		default:
 			grpcCode = codes.Internal
 		}
@@ -247,20 +220,25 @@ func convertError(err error) error {
 	return status.Error(codes.Internal, err.Error())
 }
 
-// convertCartItemToProto 转换购物车商品为 Protobuf 消息
-func convertCartItemToProto(item *model.Cart) *v1.CartItem {
-	if item == nil {
+// convertDetailToProto 将 CartItemDetail 转为 proto CartItem
+func convertDetailToProto(item *service.CartItemDetail) *v1.CartItem {
+	if item == nil || item.Cart == nil {
 		return nil
 	}
-
 	return &v1.CartItem{
-		Id:         int64(item.ID),
-		UserId:     int64(item.UserID),
-		SkuId:      int64(item.SkuID),
-		Quantity:   int32(item.Quantity),
-		IsSelected: int32(item.IsSelected),
-		CreatedAt:  formatTime(&item.CreatedAt),
-		UpdatedAt:  formatTime(&item.UpdatedAt),
+		Id:          int64(item.ID),
+		UserId:      int64(item.UserID),
+		SkuId:       int64(item.SkuID),
+		Quantity:    int32(item.Quantity),
+		IsSelected:  int32(item.IsSelected),
+		CreatedAt:   formatTime(&item.CreatedAt),
+		UpdatedAt:   formatTime(&item.UpdatedAt),
+		ProductId:   item.ProductID,
+		ProductName: item.ProductName,
+		SkuName:     item.SkuName,
+		SkuImage:    item.SkuImage,
+		Price:       fmt.Sprintf("%.2f", item.Price),
+		StockStatus: item.StockStatus,
 	}
 }
 

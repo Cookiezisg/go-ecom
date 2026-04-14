@@ -94,7 +94,7 @@ func TestCartLogicAddItemSuccess(t *testing.T) {
 		},
 	}
 
-	logic := NewCartLogic(repo)
+	logic := NewCartLogic(repo, nil, nil)
 	resp, err := logic.AddItem(context.Background(), &AddItemRequest{
 		UserID:   7,
 		SkuID:    1001,
@@ -118,7 +118,7 @@ func TestCartLogicGetCartWrapsRepoError(t *testing.T) {
 		},
 	}
 
-	logic := NewCartLogic(repo)
+	logic := NewCartLogic(repo, nil, nil)
 	_, err := logic.GetCart(context.Background(), &GetCartRequest{UserID: 1})
 	if err == nil {
 		t.Fatal("expected error, got nil")
@@ -135,7 +135,7 @@ func TestCartLogicGetCartWrapsRepoError(t *testing.T) {
 
 func TestCartLogicUpdateQuantityValidateQuantity(t *testing.T) {
 	repo := &mockCartRepo{}
-	logic := NewCartLogic(repo)
+	logic := NewCartLogic(repo, nil, nil)
 
 	err := logic.UpdateQuantity(context.Background(), &UpdateQuantityRequest{
 		UserID:   1,

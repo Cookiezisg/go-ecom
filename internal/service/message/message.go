@@ -1,12 +1,17 @@
 package message
 
 import (
+	"context"
+	"log"
+
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"ecommerce-system/internal/pkg/cache"
 	"ecommerce-system/internal/pkg/database"
+	"ecommerce-system/internal/pkg/mq"
 	"ecommerce-system/internal/service/message/repository"
+	"ecommerce-system/internal/service/message/service"
 )
 
 // ServiceContext 服务上下文
@@ -42,11 +47,52 @@ func NewServiceContext(c Config) *ServiceContext {
 		MinIdleConns: c.BizRedis.MinIdleConns,
 	})
 
-	return &ServiceContext{
+	msgRepo := repository.NewMessageRepository(db)
+
+	svcCtx := &ServiceContext{
 		Config:      c,
 		DB:          db,
 		Redis:       rdb,
 		Cache:       cache.NewCacheOperations(rdb),
-		MessageRepo: repository.NewMessageRepository(db),
+		MessageRepo: msgRepo,
 	}
+
+	// Kafka 消费者（可选）：监听订单/支付事件并发送站内消息
+	if c.Kafka != nil && len(c.Kafka.Brokers) > 0 {
+		consumerGroup := c.Kafka.ConsumerGroup
+		if consumerGroup == "" {
+			consumerGroup = "message-service"
+		}
+		consumer, err := mq.NewConsumer(&mq.Config{
+			Brokers:       c.Kafka.Brokers,
+			Version:       c.Kafka.Version,
+			ConsumerGroup: consumerGroup,
+		})
+		if err != nil {
+			log.Printf("警告：初始化Kafka消费者失败: %v", err)
+		} else {
+			logic := service.NewMessageLogic(msgRepo)
+			mc := service.NewMessageConsumer(logic)
+
+			consumer.RegisterHandler(mq.TopicOrderCreated, mc.HandleOrderCreated)
+			consumer.RegisterHandler(mq.TopicOrderCancelled, mc.HandleOrderCancelled)
+			consumer.RegisterHandler(mq.TopicPaymentSuccess, mc.HandlePaymentSuccess)
+			consumer.RegisterHandler(mq.TopicPaymentRefunded, mc.HandlePaymentRefunded)
+
+			// 在后台启动消费者
+			go func() {
+				topics := []string{
+					mq.TopicOrderCreated,
+					mq.TopicOrderCancelled,
+					mq.TopicPaymentSuccess,
+					mq.TopicPaymentRefunded,
+				}
+				if err := consumer.Start(context.Background(), topics); err != nil {
+					log.Printf("Kafka消费者退出: %v", err)
+				}
+			}()
+		}
+	}
+
+	return svcCtx
 }

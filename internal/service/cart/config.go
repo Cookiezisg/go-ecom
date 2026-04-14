@@ -2,14 +2,18 @@ package cart
 
 import (
 	"github.com/zeromicro/go-zero/zrpc"
+
+	"ecommerce-system/internal/pkg/client"
 )
 
 // Config 购物车服务配置
 type Config struct {
 	zrpc.RpcServerConf
-	Database DatabaseConfig
-	BizRedis RedisConfig // 业务侧使用的 Redis 配置，避免与 zrpc.RpcServerConf 内置的 Redis 字段冲突
-	JWT      JWTConfig
+	Database     DatabaseConfig
+	BizRedis     RedisConfig    // 业务侧使用的 Redis 配置，避免与 zrpc.RpcServerConf 内置的 Redis 字段冲突
+	JWT          JWTConfig
+	ProductRpc   client.RpcConf // 商品服务地址（AddItem 时获取价格/名称）
+	InventoryRpc client.RpcConf // 库存服务地址（AddItem 时校验库存）
 }
 
 // DatabaseConfig 数据库配置

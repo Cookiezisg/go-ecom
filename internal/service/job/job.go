@@ -1,8 +1,11 @@
 package job
 
 import (
+	"log"
+
 	"gorm.io/gorm"
 
+	"ecommerce-system/internal/pkg/client"
 	"ecommerce-system/internal/pkg/database"
 	"ecommerce-system/internal/service/job/repository"
 )
@@ -11,6 +14,7 @@ import (
 type ServiceContext struct {
 	Config     Config
 	DB         *gorm.DB
+	InvClient  *client.InventoryClient
 	OrderRepo  repository.OrderRepository
 	CouponRepo repository.CouponRepository
 }
@@ -30,10 +34,21 @@ func NewServiceContext(c Config) *ServiceContext {
 		ConnMaxIdleTime: c.Database.ConnMaxIdleTime,
 	})
 
-	return &ServiceContext{
+	ctx := &ServiceContext{
 		Config:     c,
 		DB:         db,
 		OrderRepo:  repository.NewOrderRepository(db),
 		CouponRepo: repository.NewCouponRepository(db),
 	}
+
+	// 库存服务客户端（用于取消超时订单时解锁预占库存，可选）
+	if c.InventoryRpc.Endpoint != "" {
+		ic, err := client.NewInventoryClient(c.InventoryRpc)
+		if err != nil {
+			log.Fatalf("初始化库存服务客户端失败: %v", err)
+		}
+		ctx.InvClient = ic
+	}
+
+	return ctx
 }

@@ -58,3 +58,7 @@ MongoDB:
   URI: mongodb://root:123456@127.0.0.1:27017/?authSource=admin
   Database: ecommerce
 
+# 下游服务地址
+OrderRpc:
+  Endpoint: 127.0.0.1:8082
+

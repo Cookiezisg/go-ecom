@@ -22,7 +22,7 @@ type LogisticsService struct {
 
 // NewLogisticsService 创建物流服务
 func NewLogisticsService(svcCtx *ServiceContext) *LogisticsService {
-	logic := service.NewLogisticsLogic(svcCtx.LogisticsRepo)
+	logic := service.NewLogisticsLogic(svcCtx.LogisticsRepo, svcCtx.IDGen)
 
 	return &LogisticsService{
 		svcCtx: svcCtx,

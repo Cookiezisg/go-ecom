@@ -35,3 +35,19 @@ Kafka:
     - 127.0.0.1:9092
   Version: 2.8.0
 
+# 下游服务地址
+UserRpc:
+  Endpoint: 127.0.0.1:8000
+
+ProductRpc:
+  Endpoint: 127.0.0.1:8081
+
+InventoryRpc:
+  Endpoint: 127.0.0.1:8084
+
+LogisticsRpc:
+  Endpoint: 127.0.0.1:8008
+
+PromotionRpc:
+  Endpoint: 127.0.0.1:8010
+

@@ -9,6 +9,14 @@ type Config struct {
 	zrpc.RpcServerConf
 	Database DatabaseConfig
 	BizRedis RedisConfig // 业务侧使用的 Redis 配置，避免与 zrpc.RpcServerConf 内置的 Redis 字段冲突
+	Kafka    *KafkaConfig // Kafka 配置（可选，不配置则不启动消费者）
+}
+
+// KafkaConfig Kafka配置
+type KafkaConfig struct {
+	Brokers       []string
+	Version       string
+	ConsumerGroup string
 }
 
 // DatabaseConfig 数据库配置

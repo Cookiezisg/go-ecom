@@ -12,6 +12,7 @@ import (
 	"ecommerce-system/internal/service/inventory/model"
 	"ecommerce-system/internal/service/inventory/repository"
 
+	"github.com/zeromicro/go-zero/core/logx"
 	"gorm.io/gorm"
 )
 
@@ -38,6 +39,10 @@ func NewInventoryLogic(
 	}
 }
 
+// -----------------------------------------------------------------------
+// GetInventory
+// -----------------------------------------------------------------------
+
 // GetInventoryRequest 获取库存请求
 type GetInventoryRequest struct {
 	SkuID uint64
@@ -48,46 +53,43 @@ type GetInventoryResponse struct {
 	Inventory *model.Inventory
 }
 
-// GetInventory 获取库存（优先从Redis读取）
+// GetInventory 获取库存（Redis 优先，缺失时加载 DB 并同步）
 func (l *InventoryLogic) GetInventory(ctx context.Context, req *GetInventoryRequest) (*GetInventoryResponse, error) {
-	// 优先从Redis读取
 	if l.cache != nil {
 		cacheKey := cache.BuildKey(cache.KeyPrefixInventoryStock, req.SkuID)
 		stockStr, err := l.cache.Get(ctx, cacheKey)
 		if err == nil && stockStr != "" {
-			// 从Redis读取成功，构造返回对象
 			var stock int
 			fmt.Sscanf(stockStr, "%d", &stock)
-			inventory := &model.Inventory{
-				SkuID:          req.SkuID,
-				AvailableStock: stock,
-			}
-			return &GetInventoryResponse{Inventory: inventory}, nil
+			return &GetInventoryResponse{
+				Inventory: &model.Inventory{SkuID: req.SkuID, AvailableStock: stock},
+			}, nil
 		}
 	}
 
-	// 从数据库读取
 	inventory, err := l.inventoryRepo.GetBySkuID(ctx, req.SkuID)
 	if err != nil {
-		if err == gorm.ErrRecordNotFound || errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, apperrors.NewNotFoundError("库存不存在")
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, apperrors.NewError(apperrors.CodeStockNotFound)
 		}
 		return nil, apperrors.NewInternalError("查询库存失败: " + err.Error())
 	}
 	if inventory == nil {
-		return nil, apperrors.NewNotFoundError("库存不存在")
+		return nil, apperrors.NewError(apperrors.CodeStockNotFound)
 	}
 
-	// 同步到Redis
+	// 同步到 Redis（永不过期，由写操作维护）
 	if l.cache != nil {
 		cacheKey := cache.BuildKey(cache.KeyPrefixInventoryStock, req.SkuID)
-		_ = l.cache.Set(ctx, cacheKey, inventory.AvailableStock, 0) // 永不过期
+		_ = l.cache.Set(ctx, cacheKey, inventory.AvailableStock, 0)
 	}
 
-	return &GetInventoryResponse{
-		Inventory: inventory,
-	}, nil
+	return &GetInventoryResponse{Inventory: inventory}, nil
 }
+
+// -----------------------------------------------------------------------
+// BatchGetInventory
+// -----------------------------------------------------------------------
 
 // BatchGetInventoryRequest 批量获取库存请求
 type BatchGetInventoryRequest struct {
@@ -99,17 +101,18 @@ type BatchGetInventoryResponse struct {
 	Inventories []*model.Inventory
 }
 
-// BatchGetInventory 批量获取库存
+// BatchGetInventory 批量获取库存（直接读 DB）
 func (l *InventoryLogic) BatchGetInventory(ctx context.Context, req *BatchGetInventoryRequest) (*BatchGetInventoryResponse, error) {
 	inventories, err := l.inventoryRepo.BatchGetBySkuIDs(ctx, req.SkuIDs)
 	if err != nil {
-		return nil, apperrors.NewInternalError("批量获取库存失败")
+		return nil, apperrors.NewInternalError("批量获取库存失败: " + err.Error())
 	}
-
-	return &BatchGetInventoryResponse{
-		Inventories: inventories,
-	}, nil
+	return &BatchGetInventoryResponse{Inventories: inventories}, nil
 }
+
+// -----------------------------------------------------------------------
+// LockStock（下单预占）
+// -----------------------------------------------------------------------
 
 // LockStockRequest 锁定库存请求
 type LockStockRequest struct {
@@ -119,27 +122,28 @@ type LockStockRequest struct {
 	Remark   string
 }
 
-// LockStock 锁定库存（预占）
+// LockStock 锁定库存（预占）：MySQL 原子更新，同步失效 Redis 缓存
 func (l *InventoryLogic) LockStock(ctx context.Context, req *LockStockRequest) error {
-	// 获取当前库存
 	inventory, err := l.inventoryRepo.GetBySkuID(ctx, req.SkuID)
-	if err != nil {
-		return apperrors.NewNotFoundError("库存不存在")
+	if err != nil || inventory == nil {
+		return apperrors.NewError(apperrors.CodeStockNotFound, "库存记录不存在")
 	}
 
-	// 检查可用库存是否充足
 	if inventory.AvailableStock < req.Quantity {
-		return apperrors.NewError(5000, "库存不足")
+		return apperrors.NewError(apperrors.CodeStockInsufficient)
 	}
 
-	// 锁定库存
-	err = l.inventoryRepo.LockStock(ctx, req.SkuID, req.Quantity)
-	if err != nil {
-		return apperrors.NewInternalError("锁定库存失败")
+	if err := l.inventoryRepo.LockStock(ctx, req.SkuID, req.Quantity); err != nil {
+		return apperrors.NewInternalError("锁定库存失败: " + err.Error())
 	}
 
-	// 记录库存流水
-	log := &model.InventoryLog{
+	// 使 Redis 缓存失效，避免后续读到脏数据
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixInventoryStock, req.SkuID)
+		_ = l.cache.Delete(ctx, cacheKey)
+	}
+
+	_ = l.inventoryLogRepo.Create(ctx, &model.InventoryLog{
 		SkuID:       req.SkuID,
 		OrderID:     &req.OrderID,
 		Type:        3, // 锁定
@@ -148,11 +152,14 @@ func (l *InventoryLogic) LockStock(ctx context.Context, req *LockStockRequest) e
 		AfterStock:  inventory.AvailableStock - req.Quantity,
 		Remark:      req.Remark,
 		CreatedAt:   time.Now(),
-	}
-	_ = l.inventoryLogRepo.Create(ctx, log)
+	})
 
 	return nil
 }
+
+// -----------------------------------------------------------------------
+// DeductStock（支付成功后扣减）
+// -----------------------------------------------------------------------
 
 // DeductStockRequest 扣减库存请求
 type DeductStockRequest struct {
@@ -162,59 +169,88 @@ type DeductStockRequest struct {
 	Remark   string
 }
 
-// DeductStock 扣减库存（使用Redis保证原子性）
+// DeductStock 扣减库存（原子 Lua 脚本，Redis 优先，再 Kafka 异步同步 MySQL）
+// 修复说明：旧实现先 GET 再 DECRBY 存在 TOCTOU 竞态，高并发下会超卖。
+// 新实现用 AtomicDeductStock（单条 Lua 脚本）保证原子性。
 func (l *InventoryLogic) DeductStock(ctx context.Context, req *DeductStockRequest) error {
 	if l.cache == nil {
-		return apperrors.NewInternalError("Redis未初始化")
+		// 无缓存时降级为 MySQL 直扣
+		return l.deductFromDB(ctx, req)
 	}
 
-	// 使用原子操作扣减Redis库存
 	cacheKey := cache.BuildKey(cache.KeyPrefixInventoryStock, req.SkuID)
-	// 先检查库存
-	currentStock, err := l.cache.Get(ctx, cacheKey)
+
+	newStock, err := l.cache.AtomicDeductStock(ctx, cacheKey, int64(req.Quantity))
 	if err != nil {
-		// Redis nil 错误表示库存不存在，尝试从数据库加载
-		if err.Error() == "redis: nil" {
-			// 从数据库读取库存
-			inventory, dbErr := l.inventoryRepo.GetBySkuID(ctx, req.SkuID)
-			if dbErr != nil || inventory == nil {
-				return apperrors.NewNotFoundError("库存不存在")
-			}
-			// 同步到Redis
-			_ = l.cache.Set(ctx, cacheKey, inventory.AvailableStock, 0)
-			currentStock = fmt.Sprintf("%d", inventory.AvailableStock)
-		} else {
-			return apperrors.NewInternalError("获取库存失败: " + err.Error())
-		}
-	}
-	var stock int
-	fmt.Sscanf(currentStock, "%d", &stock)
-	if stock < req.Quantity {
-		return apperrors.NewError(5000, "库存不足")
-	}
-	// 扣减库存（使用DecrementBy保证原子性）
-	newStock, err := l.cache.DecrementBy(ctx, cacheKey, int64(req.Quantity))
-	if err != nil {
-		return apperrors.NewInternalError("扣减库存失败: " + err.Error())
+		logx.Errorf("AtomicDeductStock Redis 错误 sku_id=%d: %v，降级到 DB", req.SkuID, err)
+		return l.deductFromDB(ctx, req)
 	}
 
 	if newStock < 0 {
-		return apperrors.NewError(5000, "库存不足")
+		// -1：key 不存在或库存不足；重新从 DB 加载后重试
+		inventory, dbErr := l.inventoryRepo.GetBySkuID(ctx, req.SkuID)
+		if dbErr != nil || inventory == nil {
+			return apperrors.NewError(apperrors.CodeStockNotFound)
+		}
+		if inventory.AvailableStock < req.Quantity {
+			return apperrors.NewError(apperrors.CodeStockInsufficient)
+		}
+		// 写入缓存后重试
+		_ = l.cache.Set(ctx, cacheKey, inventory.AvailableStock, 0)
+		newStock, err = l.cache.AtomicDeductStock(ctx, cacheKey, int64(req.Quantity))
+		if err != nil || newStock < 0 {
+			return apperrors.NewError(apperrors.CodeStockInsufficient)
+		}
 	}
 
-	// 发送Kafka消息，异步同步到MySQL
+	// 异步通过 Kafka 同步到 MySQL
 	if l.mqProducer != nil {
-		message := mq.NewMessage(mq.TopicInventoryDeducted, map[string]interface{}{
+		msg := mq.NewMessage(mq.TopicInventoryDeducted, map[string]interface{}{
 			"sku_id":    req.SkuID,
 			"quantity":  req.Quantity,
 			"order_id":  req.OrderID,
 			"new_stock": newStock,
 		})
-		_ = l.mqProducer.PublishWithKey(ctx, mq.TopicInventoryDeducted, fmt.Sprintf("%d", req.SkuID), message)
+		_ = l.mqProducer.PublishWithKey(ctx, mq.TopicInventoryDeducted, fmt.Sprintf("%d", req.SkuID), msg)
+	} else {
+		// 无 Kafka 时直接同步 DB
+		return l.deductFromDB(ctx, req)
 	}
 
 	return nil
 }
+
+// deductFromDB MySQL 直接扣减库存（降级路径）
+func (l *InventoryLogic) deductFromDB(ctx context.Context, req *DeductStockRequest) error {
+	inventory, err := l.inventoryRepo.GetBySkuID(ctx, req.SkuID)
+	if err != nil || inventory == nil {
+		return apperrors.NewError(apperrors.CodeStockNotFound)
+	}
+	if inventory.AvailableStock < req.Quantity {
+		return apperrors.NewError(apperrors.CodeStockInsufficient)
+	}
+
+	if err := l.inventoryRepo.DeductStock(ctx, req.SkuID, req.Quantity); err != nil {
+		return apperrors.NewInternalError("扣减库存失败: " + err.Error())
+	}
+
+	_ = l.inventoryLogRepo.Create(ctx, &model.InventoryLog{
+		SkuID:       req.SkuID,
+		OrderID:     &req.OrderID,
+		Type:        5, // 扣减
+		Quantity:    req.Quantity,
+		BeforeStock: inventory.AvailableStock,
+		AfterStock:  inventory.AvailableStock - req.Quantity,
+		Remark:      req.Remark,
+		CreatedAt:   time.Now(),
+	})
+
+	return nil
+}
+
+// -----------------------------------------------------------------------
+// UnlockStock（取消订单释放预占）
+// -----------------------------------------------------------------------
 
 // UnlockStockRequest 解锁库存请求
 type UnlockStockRequest struct {
@@ -224,22 +260,24 @@ type UnlockStockRequest struct {
 	Remark   string
 }
 
-// UnlockStock 解锁库存
+// UnlockStock 解锁库存，同步更新 Redis 缓存
 func (l *InventoryLogic) UnlockStock(ctx context.Context, req *UnlockStockRequest) error {
-	// 获取当前库存
 	inventory, err := l.inventoryRepo.GetBySkuID(ctx, req.SkuID)
-	if err != nil {
-		return apperrors.NewNotFoundError("库存不存在")
+	if err != nil || inventory == nil {
+		return apperrors.NewError(apperrors.CodeStockNotFound)
 	}
 
-	// 解锁库存
-	err = l.inventoryRepo.UnlockStock(ctx, req.SkuID, req.Quantity)
-	if err != nil {
-		return apperrors.NewInternalError("解锁库存失败")
+	if err := l.inventoryRepo.UnlockStock(ctx, req.SkuID, req.Quantity); err != nil {
+		return apperrors.NewInternalError("解锁库存失败: " + err.Error())
 	}
 
-	// 记录库存流水
-	log := &model.InventoryLog{
+	// 解锁后 available_stock 增加，同步更新 Redis
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixInventoryStock, req.SkuID)
+		_, _ = l.cache.AtomicRollbackStock(ctx, cacheKey, int64(req.Quantity))
+	}
+
+	_ = l.inventoryLogRepo.Create(ctx, &model.InventoryLog{
 		SkuID:       req.SkuID,
 		OrderID:     &req.OrderID,
 		Type:        4, // 解锁
@@ -248,11 +286,14 @@ func (l *InventoryLogic) UnlockStock(ctx context.Context, req *UnlockStockReques
 		AfterStock:  inventory.LockedStock - req.Quantity,
 		Remark:      req.Remark,
 		CreatedAt:   time.Now(),
-	}
-	_ = l.inventoryLogRepo.Create(ctx, log)
+	})
 
 	return nil
 }
+
+// -----------------------------------------------------------------------
+// RollbackStock（退款回退已售库存）
+// -----------------------------------------------------------------------
 
 // RollbackStockRequest 回退库存请求
 type RollbackStockRequest struct {
@@ -262,22 +303,24 @@ type RollbackStockRequest struct {
 	Remark   string
 }
 
-// RollbackStock 回退库存
+// RollbackStock 回退库存（退款场景），同步更新 Redis
 func (l *InventoryLogic) RollbackStock(ctx context.Context, req *RollbackStockRequest) error {
-	// 获取当前库存
 	inventory, err := l.inventoryRepo.GetBySkuID(ctx, req.SkuID)
-	if err != nil {
-		return apperrors.NewNotFoundError("库存不存在")
+	if err != nil || inventory == nil {
+		return apperrors.NewError(apperrors.CodeStockNotFound)
 	}
 
-	// 回退库存
-	err = l.inventoryRepo.RollbackStock(ctx, req.SkuID, req.Quantity)
-	if err != nil {
-		return apperrors.NewInternalError("回退库存失败")
+	if err := l.inventoryRepo.RollbackStock(ctx, req.SkuID, req.Quantity); err != nil {
+		return apperrors.NewInternalError("回退库存失败: " + err.Error())
 	}
 
-	// 记录库存流水
-	log := &model.InventoryLog{
+	// 回退后 available_stock 增加，同步 Redis
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixInventoryStock, req.SkuID)
+		_, _ = l.cache.AtomicRollbackStock(ctx, cacheKey, int64(req.Quantity))
+	}
+
+	_ = l.inventoryLogRepo.Create(ctx, &model.InventoryLog{
 		SkuID:       req.SkuID,
 		OrderID:     &req.OrderID,
 		Type:        6, // 回退
@@ -286,11 +329,14 @@ func (l *InventoryLogic) RollbackStock(ctx context.Context, req *RollbackStockRe
 		AfterStock:  inventory.SoldStock - req.Quantity,
 		Remark:      req.Remark,
 		CreatedAt:   time.Now(),
-	}
-	_ = l.inventoryLogRepo.Create(ctx, log)
+	})
 
 	return nil
 }
+
+// -----------------------------------------------------------------------
+// StockIn（入库）
+// -----------------------------------------------------------------------
 
 // StockInRequest 入库请求
 type StockInRequest struct {
@@ -299,12 +345,14 @@ type StockInRequest struct {
 	Remark   string
 }
 
-// StockIn 入库
+// StockIn 入库，同步更新 Redis
 func (l *InventoryLogic) StockIn(ctx context.Context, req *StockInRequest) error {
-	// 获取当前库存
 	inventory, err := l.inventoryRepo.GetBySkuID(ctx, req.SkuID)
-	if err != nil {
-		// 如果库存不存在，创建新记录
+	if err != nil && !errors.Is(err, gorm.ErrRecordNotFound) {
+		return apperrors.NewInternalError("查询库存失败: " + err.Error())
+	}
+
+	if inventory == nil {
 		inventory = &model.Inventory{
 			SkuID:             req.SkuID,
 			TotalStock:        req.Quantity,
@@ -312,23 +360,23 @@ func (l *InventoryLogic) StockIn(ctx context.Context, req *StockInRequest) error
 			LockedStock:       0,
 			SoldStock:         0,
 			LowStockThreshold: 10,
-			CreatedAt:         time.Now(),
-			UpdatedAt:         time.Now(),
 		}
-		err = l.inventoryRepo.Create(ctx, inventory)
-		if err != nil {
-			return apperrors.NewInternalError("创建库存记录失败")
+		if err := l.inventoryRepo.Create(ctx, inventory); err != nil {
+			return apperrors.NewInternalError("创建库存记录失败: " + err.Error())
 		}
 	} else {
-		// 更新库存
-		err = l.inventoryRepo.StockIn(ctx, req.SkuID, req.Quantity)
-		if err != nil {
-			return apperrors.NewInternalError("入库失败")
+		if err := l.inventoryRepo.StockIn(ctx, req.SkuID, req.Quantity); err != nil {
+			return apperrors.NewInternalError("入库失败: " + err.Error())
 		}
 	}
 
-	// 记录库存流水
-	log := &model.InventoryLog{
+	// 同步 Redis
+	if l.cache != nil {
+		cacheKey := cache.BuildKey(cache.KeyPrefixInventoryStock, req.SkuID)
+		_, _ = l.cache.AtomicRollbackStock(ctx, cacheKey, int64(req.Quantity))
+	}
+
+	_ = l.inventoryLogRepo.Create(ctx, &model.InventoryLog{
 		SkuID:       req.SkuID,
 		Type:        1, // 入库
 		Quantity:    req.Quantity,
@@ -336,11 +384,14 @@ func (l *InventoryLogic) StockIn(ctx context.Context, req *StockInRequest) error
 		AfterStock:  inventory.AvailableStock + req.Quantity,
 		Remark:      req.Remark,
 		CreatedAt:   time.Now(),
-	}
-	_ = l.inventoryLogRepo.Create(ctx, log)
+	})
 
 	return nil
 }
+
+// -----------------------------------------------------------------------
+// GetInventoryLog
+// -----------------------------------------------------------------------
 
 // GetInventoryLogRequest 获取库存流水请求
 type GetInventoryLogRequest struct {
@@ -359,11 +410,7 @@ type GetInventoryLogResponse struct {
 func (l *InventoryLogic) GetInventoryLog(ctx context.Context, req *GetInventoryLogRequest) (*GetInventoryLogResponse, error) {
 	logs, total, err := l.inventoryLogRepo.GetBySkuID(ctx, req.SkuID, req.Page, req.PageSize)
 	if err != nil {
-		return nil, apperrors.NewInternalError("获取库存流水失败")
+		return nil, apperrors.NewInternalError("获取库存流水失败: " + err.Error())
 	}
-
-	return &GetInventoryLogResponse{
-		Logs:  logs,
-		Total: total,
-	}, nil
+	return &GetInventoryLogResponse{Logs: logs, Total: total}, nil
 }

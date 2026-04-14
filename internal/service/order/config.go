@@ -2,6 +2,8 @@ package order
 
 import (
 	"github.com/zeromicro/go-zero/zrpc"
+
+	"ecommerce-system/internal/pkg/client"
 )
 
 // DatabaseConfig 数据库配置
@@ -31,9 +33,14 @@ type RedisConfig struct {
 // Config 订单服务配置
 type Config struct {
 	zrpc.RpcServerConf
-	Database DatabaseConfig
-	BizRedis RedisConfig // 业务侧使用的 Redis 配置，避免与 zrpc.RpcServerConf 内置的 Redis 字段冲突
-	Kafka    KafkaConfig
+	Database      DatabaseConfig
+	BizRedis      RedisConfig    // 业务侧使用的 Redis 配置
+	Kafka         KafkaConfig
+	UserRpc       client.RpcConf // 用户服务地址
+	ProductRpc    client.RpcConf // 商品服务地址
+	InventoryRpc  client.RpcConf // 库存服务地址
+	LogisticsRpc  client.RpcConf // 物流服务地址（发货时建运单）
+	PromotionRpc  client.RpcConf // 营销服务地址（创建订单时计算优惠）
 }
 
 // KafkaConfig Kafka配置

@@ -16,6 +16,12 @@ service OrderService {
   rpc CancelOrder (CancelOrderRequest) returns (CancelOrderResponse);
   // 确认收货
   rpc ConfirmReceive (ConfirmReceiveRequest) returns (ConfirmReceiveResponse);
+  // 支付成功通知（由支付服务回调，订单状态 待支付→待发货）
+  rpc PayOrder (PayOrderRequest) returns (PayOrderResponse);
+  // 发货通知（由物流服务调用，订单状态 待发货→待收货）
+  rpc ShipOrder (ShipOrderRequest) returns (ShipOrderResponse);
+  // 退款通知（由支付服务调用，订单状态→已退款，回退库存）
+  rpc RefundOrder (RefundOrderRequest) returns (RefundOrderResponse);
 }
 
 // 订单信息
@@ -146,4 +152,43 @@ message ConfirmReceiveResponse {
   string message = 2;
 }
 
+// 支付成功通知请求
+message PayOrderRequest {
+  int64 order_id = 1;
+  string order_no = 2;
+  int32 payment_method = 3; // 支付方式: 1-微信, 2-支付宝, 3-银联
+  string payment_no = 4;    // 支付单号
+}
 
+// 支付成功通知响应
+message PayOrderResponse {
+  int32 code = 1;
+  string message = 2;
+}
+
+// 发货通知请求
+message ShipOrderRequest {
+  int64 order_id = 1;
+  string order_no = 2;
+  string tracking_no = 3; // 快递单号
+  string carrier = 4;     // 快递公司
+}
+
+// 发货通知响应
+message ShipOrderResponse {
+  int32 code = 1;
+  string message = 2;
+}
+
+// 退款通知请求
+message RefundOrderRequest {
+  int64 order_id = 1;
+  string order_no = 2;
+  string reason = 3;
+}
+
+// 退款通知响应
+message RefundOrderResponse {
+  int32 code = 1;
+  string message = 2;
+}

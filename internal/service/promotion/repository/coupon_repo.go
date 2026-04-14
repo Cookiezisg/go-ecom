@@ -17,6 +17,9 @@ type CouponRepository interface {
 	Create(ctx context.Context, coupon *model.Coupon) error
 	// Update 更新优惠券
 	Update(ctx context.Context, coupon *model.Coupon) error
+	// IncrUsedCount 原子加 1 used_count（仅当 total_count=0 或 used_count < total_count 时生效）
+	// 返回受影响行数；0 表示已售完，调用方应返回「已领完」错误。
+	IncrUsedCount(ctx context.Context, id uint64) (int64, error)
 }
 
 type couponRepository struct {
@@ -62,4 +65,13 @@ func (r *couponRepository) Create(ctx context.Context, coupon *model.Coupon) err
 // Update 更新优惠券
 func (r *couponRepository) Update(ctx context.Context, coupon *model.Coupon) error {
 	return r.db.WithContext(ctx).Save(coupon).Error
+}
+
+// IncrUsedCount 原子递增 used_count（WHERE 确保不超发）
+func (r *couponRepository) IncrUsedCount(ctx context.Context, id uint64) (int64, error) {
+	result := r.db.WithContext(ctx).Exec(
+		`UPDATE coupons SET used_count = used_count + 1 WHERE id = ? AND (total_count = 0 OR used_count < total_count)`,
+		id,
+	)
+	return result.RowsAffected, result.Error
 }

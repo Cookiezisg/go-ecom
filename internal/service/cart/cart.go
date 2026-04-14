@@ -1,20 +1,25 @@
 package cart
 
 import (
+	"log"
+
 	"github.com/redis/go-redis/v9"
 	"gorm.io/gorm"
 
 	"ecommerce-system/internal/pkg/cache"
+	"ecommerce-system/internal/pkg/client"
 	"ecommerce-system/internal/pkg/database"
 	"ecommerce-system/internal/service/cart/repository"
 )
 
 // ServiceContext 服务上下文
 type ServiceContext struct {
-	Config   Config
-	DB       *gorm.DB
-	Redis    *redis.Client
-	CartRepo repository.CartRepository
+	Config        Config
+	DB            *gorm.DB
+	Redis         *redis.Client
+	ProductClient *client.ProductClient
+	InvClient     *client.InventoryClient
+	CartRepo      repository.CartRepository
 }
 
 // NewServiceContext 创建服务上下文。DB/Redis 初始化失败直接 Fatal，不静默放行。
@@ -41,10 +46,28 @@ func NewServiceContext(c Config) *ServiceContext {
 		MinIdleConns: c.BizRedis.MinIdleConns,
 	})
 
-	return &ServiceContext{
+	ctx := &ServiceContext{
 		Config:   c,
 		DB:       db,
 		Redis:    rdb,
 		CartRepo: repository.NewCartRepository(db, rdb),
 	}
+
+	if c.ProductRpc.Endpoint != "" {
+		pc, err := client.NewProductClient(c.ProductRpc)
+		if err != nil {
+			log.Fatalf("初始化商品服务客户端失败: %v", err)
+		}
+		ctx.ProductClient = pc
+	}
+
+	if c.InventoryRpc.Endpoint != "" {
+		ic, err := client.NewInventoryClient(c.InventoryRpc)
+		if err != nil {
+			log.Fatalf("初始化库存服务客户端失败: %v", err)
+		}
+		ctx.InvClient = ic
+	}
+
+	return ctx
 }

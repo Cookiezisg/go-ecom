@@ -53,3 +53,12 @@ Database:
   ConnMaxLifetime: 3600
   ConnMaxIdleTime: 600
 
+# Redis配置（用于 idgen 物流单号生成）
+BizRedis:
+  Host: 127.0.0.1
+  Port: 6379
+  Password: ""
+  Database: 0
+  PoolSize: 10
+  MinIdleConns: 5
+

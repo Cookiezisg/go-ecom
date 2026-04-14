@@ -9,9 +9,6 @@ import (
 	apperrors "ecommerce-system/internal/pkg/errors"
 	"ecommerce-system/internal/service/payment/model"
 	"ecommerce-system/internal/service/payment/service"
-
-	"google.golang.org/grpc/codes"
-	"google.golang.org/grpc/status"
 )
 
 // PaymentService 实现 gRPC 服务接口
@@ -23,14 +20,15 @@ type PaymentService struct {
 
 // NewPaymentService 创建支付服务
 func NewPaymentService(svcCtx *ServiceContext) *PaymentService {
-	logic := service.NewPaymentLogic(
-		svcCtx.PaymentRepo,
-		svcCtx.PaymentLogRepo,
-	)
-
 	return &PaymentService{
 		svcCtx: svcCtx,
-		logic:  logic,
+		logic: service.NewPaymentLogic(
+			svcCtx.IDGen,
+			svcCtx.PaymentRepo,
+			svcCtx.PaymentLogRepo,
+			svcCtx.OrderClient,
+			svcCtx.InvClient,
+		),
 	}
 }
 
@@ -139,29 +137,7 @@ func (s *PaymentService) QueryPaymentStatus(ctx context.Context, req *v1.QueryPa
 
 // convertError 转换业务错误为 gRPC 错误
 func convertError(err error) error {
-	if err == nil {
-		return nil
-	}
-
-	// 检查是否是 BusinessError
-	if bizErr, ok := err.(*apperrors.BusinessError); ok {
-		var grpcCode codes.Code
-		switch bizErr.Code {
-		case apperrors.CodeNotFound:
-			grpcCode = codes.NotFound
-		case apperrors.CodeInvalidParam:
-			grpcCode = codes.InvalidArgument
-		case apperrors.CodeUnauthorized:
-			grpcCode = codes.Unauthenticated
-		case apperrors.CodeForbidden:
-			grpcCode = codes.PermissionDenied
-		default:
-			grpcCode = codes.Internal
-		}
-		return status.Error(grpcCode, bizErr.Error())
-	}
-
-	return status.Error(codes.Internal, err.Error())
+	return apperrors.ConvertToGRPCError(err)
 }
 
 // convertPaymentToProto 转换支付单模型为 Protobuf 消息

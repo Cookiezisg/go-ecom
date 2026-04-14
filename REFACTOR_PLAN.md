@@ -27,10 +27,10 @@
 
 | # | 任务 | 状态 | 备注 |
 |---|------|------|------|
-| 2.1 | `internal/pkg/client`（新建）— 封装各下游服务 gRPC client，带超时/重试 | ⬜ | product / user / inventory / order client |
-| 2.2 | **Order service 完整重写** — CreateOrder 调用 user/product/inventory 服务，事务包裹，补全 PayOrder / ShipOrder | ⬜ | 当前 ReceiverName/Price/Amount 全是空值 |
-| 2.3 | **Payment service 完整重写** — 单号走 idgen，Callback 联动更新订单状态 + 库存 | ⬜ | 当前回调不通知任何服务 |
-| 2.4 | **Inventory service 修复** — DeductStock 改 Lua 原子扣减，补全 Kafka 消费者同步 MySQL | ⬜ | 当前 get+decr 两步非原子，高并发超卖 |
+| 2.1 | `internal/pkg/client`（新建）— 封装各下游服务 gRPC client，带超时/重试 | ✅ | user / product / inventory / order client，统一 RpcConf，默认 5s 超时 |
+| 2.2 | **Order service 完整重写** — CreateOrder 调用 user/product/inventory 服务，事务包裹，补全 PayOrder / ShipOrder / RefundOrder | ✅ | 地址/SKU/金额全部真实填充；CancelOrder 联动解锁库存；PayOrder/ShipOrder/RefundOrder 新增 |
+| 2.3 | **Payment service 完整重写** — 单号走 idgen，Callback 联动更新订单状态 + 库存 | ✅ | PaymentNo/RefundNo 换 idgen；Callback 成功→order.PayOrder，失败→order.CancelOrder；Refund→order.RefundOrder |
+| 2.4 | **Inventory service 修复** — DeductStock 改 Lua 原子扣减，补全 Kafka 消费者同步 MySQL | ✅ | AtomicDeductStock 替换旧 TOCTOU；LockStock/UnlockStock/RollbackStock 同步 Redis；新增 InventoryConsumer |
 
 ---
 
@@ -40,13 +40,13 @@
 
 | # | 任务 | 状态 | 备注 |
 |---|------|------|------|
-| 3.1 | **Cart service** — AddItem 改 upsert，加库存校验，返回带价格的商品信息 | ⬜ | 当前重复加同一 SKU 会报唯一索引错误 |
-| 3.2 | **Promotion service** — 补全优惠券领取/核销/过期逻辑，接入 CreateOrder 抵扣计算 | ⬜ | 当前优惠券不可用 |
-| 3.3 | **Logistics service** — 补全运单创建/轨迹查询/签收流程，ShipOrder 时联动建运单 | ⬜ | 当前基本是空壳 |
-| 3.4 | **Message service** — 补全消息推送，Kafka consumer 消费订单/支付事件后发通知 | ⬜ | 当前基本是空壳 |
-| 3.5 | **Review service** — 校验订单已完成才能评价，补全评分统计汇总 | ⬜ | 当前缺少订单状态校验 |
-| 3.6 | **Recommend service** — 全部换强类型结构体，补全基于历史行为的推荐逻辑 | ⬜ | 当前用 map[string]interface{} 传数据 |
-| 3.7 | **Job service** — 补全定时任务：超时订单自动取消、优惠券过期处理、低库存告警 | ⬜ | 基本骨架在，逻辑不完整 |
+| 3.1 | **Cart service** — AddItem 改 upsert，加库存校验，返回带价格的商品信息 | ✅ | SKU 状态/库存校验；AddItem/GetCart 返回 price/sku_name/stock_status；proto 新增字段并重新生成 |
+| 3.2 | **Promotion service** — 补全优惠券领取/核销/过期逻辑，接入 CreateOrder 抵扣计算 | ✅ | ReceiveCoupon 改原子 SQL 防超发；CreateOrder 接 PromotionClient 计算折扣；新增 PromotionClient |
+| 3.3 | **Logistics service** — 补全运单创建/轨迹查询/签收流程，ShipOrder 时联动建运单 | ✅ | 文件名 typo 修复；物流单号改 idgen.LogisticsNo；新增 LogisticsClient；ShipOrder 联动建运单 |
+| 3.4 | **Message service** — 补全消息推送，Kafka consumer 消费订单/支付事件后发通知 | ✅ | 新增 MessageConsumer；消费 order.created/cancelled/payment.success/refunded 事件；后台 goroutine 启动 |
+| 3.5 | **Review service** — 校验订单已完成才能评价，补全评分统计汇总 | ✅ | CreateReview 接 OrderClient 校验状态=4（已完成）及订单归属 |
+| 3.6 | **Recommend service** — 全部换强类型结构体，补全基于历史行为的推荐逻辑 | ✅ | 仓库接口改 []*RecommendItem 强类型；Redis ZSet 存储热门/个性化/相似/实时推荐 |
+| 3.7 | **Job service** — 补全定时任务：超时订单自动取消、优惠券过期处理、低库存告警 | ✅ | CancelExpiredOrders 先调 InvClient.UnlockStock 再批量取消；GenerateStatistics 补逻辑骨架 |
 
 ---
 
@@ -65,3 +65,5 @@
 |------|---------|
 | 2026-04-14 | 创建计划文档，建立 feature 分支 |
 | 2026-04-14 | Step 1 完成：pkg/errors、cache、idgen、middleware 重写；所有 ServiceContext 修复；`go build ./...` 通过 |
+| 2026-04-14 | Step 2 完成：pkg/client 新建；Order/Payment/Inventory service 完整重写；`go build ./...` 通过 |
+| 2026-04-14 | Step 3 完成：Cart/Promotion/Logistics/Message/Review/Recommend/Job service 全部补全；`go build ./...` 通过 |

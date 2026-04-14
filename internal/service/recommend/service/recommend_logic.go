@@ -2,6 +2,7 @@ package service
 
 import (
 	"context"
+
 	apperrors "ecommerce-system/internal/pkg/errors"
 	"ecommerce-system/internal/service/recommend/repository"
 )
@@ -41,36 +42,27 @@ type GetPersonalizedRecommendResponse struct {
 
 // GetPersonalizedRecommend 获取个性化推荐
 func (l *RecommendLogic) GetPersonalizedRecommend(ctx context.Context, req *GetPersonalizedRecommendRequest) (*GetPersonalizedRecommendResponse, error) {
-	results, err := l.recommendRepo.GetPersonalizedRecommend(ctx, req.UserID, req.Limit)
+	items, err := l.recommendRepo.GetPersonalizedRecommend(ctx, req.UserID, req.Limit)
 	if err != nil {
 		return nil, apperrors.NewInternalError("获取个性化推荐失败")
 	}
 
-	products := make([]*RecommendProduct, 0, len(results))
-	for _, r := range results {
-		if r == nil {
+	products := make([]*RecommendProduct, 0, len(items))
+	for _, item := range items {
+		if item == nil {
 			continue
 		}
-		productID, _ := r["product_id"].(int64)
-		name, _ := r["name"].(string)
-		mainImage, _ := r["main_image"].(string)
-		price, _ := r["price"].(float64)
-		score, _ := r["score"].(float64)
-		reason, _ := r["reason"].(string)
-
 		products = append(products, &RecommendProduct{
-			ProductID: productID,
-			Name:      name,
-			MainImage: mainImage,
-			Price:     price,
-			Score:     score,
-			Reason:    reason,
+			ProductID: item.ProductID,
+			Name:      item.Name,
+			MainImage: item.MainImage,
+			Price:     item.Price,
+			Score:     item.Score,
+			Reason:    item.Reason,
 		})
 	}
 
-	return &GetPersonalizedRecommendResponse{
-		Products: products,
-	}, nil
+	return &GetPersonalizedRecommendResponse{Products: products}, nil
 }
 
 // GetSimilarProductsRequest 相似商品推荐请求
@@ -86,35 +78,27 @@ type GetSimilarProductsResponse struct {
 
 // GetSimilarProducts 获取相似商品
 func (l *RecommendLogic) GetSimilarProducts(ctx context.Context, req *GetSimilarProductsRequest) (*GetSimilarProductsResponse, error) {
-	results, err := l.recommendRepo.GetSimilarProducts(ctx, req.ProductID, req.Limit)
+	items, err := l.recommendRepo.GetSimilarProducts(ctx, req.ProductID, req.Limit)
 	if err != nil {
 		return nil, apperrors.NewInternalError("获取相似商品失败")
 	}
 
-	products := make([]*RecommendProduct, 0, len(results))
-	for _, r := range results {
-		if r == nil {
+	products := make([]*RecommendProduct, 0, len(items))
+	for _, item := range items {
+		if item == nil {
 			continue
 		}
-		productID, _ := r["product_id"].(int64)
-		name, _ := r["name"].(string)
-		mainImage, _ := r["main_image"].(string)
-		price, _ := r["price"].(float64)
-		score, _ := r["score"].(float64)
-
 		products = append(products, &RecommendProduct{
-			ProductID: productID,
-			Name:      name,
-			MainImage: mainImage,
-			Price:     price,
-			Score:     score,
+			ProductID: item.ProductID,
+			Name:      item.Name,
+			MainImage: item.MainImage,
+			Price:     item.Price,
+			Score:     item.Score,
 			Reason:    "相似商品",
 		})
 	}
 
-	return &GetSimilarProductsResponse{
-		Products: products,
-	}, nil
+	return &GetSimilarProductsResponse{Products: products}, nil
 }
 
 // GetHotProductsRequest 热门推荐请求
@@ -130,35 +114,27 @@ type GetHotProductsResponse struct {
 
 // GetHotProducts 获取热门商品
 func (l *RecommendLogic) GetHotProducts(ctx context.Context, req *GetHotProductsRequest) (*GetHotProductsResponse, error) {
-	results, err := l.recommendRepo.GetHotProducts(ctx, req.CategoryID, req.Limit)
+	items, err := l.recommendRepo.GetHotProducts(ctx, req.CategoryID, req.Limit)
 	if err != nil {
 		return nil, apperrors.NewInternalError("获取热门商品失败")
 	}
 
-	products := make([]*RecommendProduct, 0, len(results))
-	for _, r := range results {
-		if r == nil {
+	products := make([]*RecommendProduct, 0, len(items))
+	for _, item := range items {
+		if item == nil {
 			continue
 		}
-		productID, _ := r["product_id"].(int64)
-		name, _ := r["name"].(string)
-		mainImage, _ := r["main_image"].(string)
-		price, _ := r["price"].(float64)
-		score, _ := r["score"].(float64)
-
 		products = append(products, &RecommendProduct{
-			ProductID: productID,
-			Name:      name,
-			MainImage: mainImage,
-			Price:     price,
-			Score:     score,
+			ProductID: item.ProductID,
+			Name:      item.Name,
+			MainImage: item.MainImage,
+			Price:     item.Price,
+			Score:     item.Score,
 			Reason:    "热门商品",
 		})
 	}
 
-	return &GetHotProductsResponse{
-		Products: products,
-	}, nil
+	return &GetHotProductsResponse{Products: products}, nil
 }
 
 // GetRealtimeRecommendRequest 实时推荐请求
@@ -174,33 +150,25 @@ type GetRealtimeRecommendResponse struct {
 
 // GetRealtimeRecommend 获取实时推荐
 func (l *RecommendLogic) GetRealtimeRecommend(ctx context.Context, req *GetRealtimeRecommendRequest) (*GetRealtimeRecommendResponse, error) {
-	results, err := l.recommendRepo.GetRealtimeRecommend(ctx, req.UserID, req.Limit)
+	items, err := l.recommendRepo.GetRealtimeRecommend(ctx, req.UserID, req.Limit)
 	if err != nil {
 		return nil, apperrors.NewInternalError("获取实时推荐失败")
 	}
 
-	products := make([]*RecommendProduct, 0, len(results))
-	for _, r := range results {
-		if r == nil {
+	products := make([]*RecommendProduct, 0, len(items))
+	for _, item := range items {
+		if item == nil {
 			continue
 		}
-		productID, _ := r["product_id"].(int64)
-		name, _ := r["name"].(string)
-		mainImage, _ := r["main_image"].(string)
-		price, _ := r["price"].(float64)
-		score, _ := r["score"].(float64)
-
 		products = append(products, &RecommendProduct{
-			ProductID: productID,
-			Name:      name,
-			MainImage: mainImage,
-			Price:     price,
-			Score:     score,
+			ProductID: item.ProductID,
+			Name:      item.Name,
+			MainImage: item.MainImage,
+			Price:     item.Price,
+			Score:     item.Score,
 			Reason:    "实时推荐",
 		})
 	}
 
-	return &GetRealtimeRecommendResponse{
-		Products: products,
-	}, nil
+	return &GetRealtimeRecommendResponse{Products: products}, nil
 }

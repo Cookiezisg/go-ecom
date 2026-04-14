@@ -2,10 +2,10 @@ package service
 
 import (
 	"context"
-	"fmt"
 	"time"
 
 	apperrors "ecommerce-system/internal/pkg/errors"
+	"ecommerce-system/internal/pkg/idgen"
 	"ecommerce-system/internal/service/logistics/model"
 	"ecommerce-system/internal/service/logistics/repository"
 )
@@ -13,12 +13,14 @@ import (
 // LogisticsLogic 物流业务逻辑
 type LogisticsLogic struct {
 	logisticsRepo repository.LogisticsRepository
+	idGen         *idgen.Generator
 }
 
 // NewLogisticsLogic 创建物流业务逻辑
-func NewLogisticsLogic(logisticsRepo repository.LogisticsRepository) *LogisticsLogic {
+func NewLogisticsLogic(logisticsRepo repository.LogisticsRepository, idGen *idgen.Generator) *LogisticsLogic {
 	return &LogisticsLogic{
 		logisticsRepo: logisticsRepo,
+		idGen:         idGen,
 	}
 }
 
@@ -38,10 +40,14 @@ type CreateLogisticsResponse struct {
 	Logistics *model.Logistics
 }
 
-// CreateLogistics 创建物流单
+// CreateLogistics 创建物流单（物流单号由 idgen 生成，格式 LGS+yyyyMMdd+8位序号）
 func (l *LogisticsLogic) CreateLogistics(ctx context.Context, req *CreateLogisticsRequest) (*CreateLogisticsResponse, error) {
-	// 生成物流单号
-	logisticsNo := fmt.Sprintf("L%d%d", time.Now().Unix(), req.OrderID)
+	var logisticsNo string
+	if l.idGen != nil {
+		logisticsNo = l.idGen.LogisticsNo(ctx)
+	} else {
+		logisticsNo = "LGS" + time.Now().Format("20060102150405")
+	}
 
 	logistics := &model.Logistics{
 		OrderID:          req.OrderID,
@@ -61,9 +67,7 @@ func (l *LogisticsLogic) CreateLogistics(ctx context.Context, req *CreateLogisti
 		return nil, apperrors.NewInternalError("创建物流单失败")
 	}
 
-	return &CreateLogisticsResponse{
-		Logistics: logistics,
-	}, nil
+	return &CreateLogisticsResponse{Logistics: logistics}, nil
 }
 
 // GetLogisticsRequest 获取物流信息请求
@@ -83,9 +87,7 @@ func (l *LogisticsLogic) GetLogistics(ctx context.Context, req *GetLogisticsRequ
 		return nil, apperrors.NewNotFoundError("物流信息不存在")
 	}
 
-	return &GetLogisticsResponse{
-		Logistics: logistics,
-	}, nil
+	return &GetLogisticsResponse{Logistics: logistics}, nil
 }
 
 // UpdateLogisticsStatusRequest 更新物流状态请求
@@ -104,9 +106,10 @@ func (l *LogisticsLogic) UpdateLogisticsStatus(ctx context.Context, req *UpdateL
 
 	logistics.Status = req.Status
 	now := time.Now()
-	if req.Status == 1 {
+	switch req.Status {
+	case 1: // 已发货
 		logistics.ShippedAt = &now
-	} else if req.Status == 3 {
+	case 3: // 已签收
 		logistics.DeliveredAt = &now
 	}
 
@@ -136,20 +139,19 @@ type QueryTrackingResponse struct {
 	Nodes []*TrackingNode
 }
 
-// QueryTracking 查询物流轨迹
+// QueryTracking 查询物流轨迹（从本地状态构建基础轨迹；接入三方 API 时替换此处逻辑）
 func (l *LogisticsLogic) QueryTracking(ctx context.Context, req *QueryTrackingRequest) (*QueryTrackingResponse, error) {
 	logistics, err := l.logisticsRepo.GetByLogisticsNo(ctx, req.LogisticsNo)
 	if err != nil {
 		return nil, apperrors.NewNotFoundError("物流信息不存在")
 	}
 
-	// 这里简化处理，实际应该调用第三方物流API获取轨迹
 	nodes := []*TrackingNode{
 		{
 			Time:     logistics.CreatedAt.Format(time.RFC3339),
 			Status:   "已创建",
 			Location: "",
-			Remark:   "物流单已创建",
+			Remark:   "物流单已创建，单号：" + logistics.LogisticsNo,
 		},
 	}
 
@@ -158,22 +160,20 @@ func (l *LogisticsLogic) QueryTracking(ctx context.Context, req *QueryTrackingRe
 			Time:     logistics.ShippedAt.Format(time.RFC3339),
 			Status:   "已发货",
 			Location: "",
-			Remark:   "商品已发出",
+			Remark:   "商品已由" + logistics.LogisticsCompany + "揽收",
 		})
 	}
 
 	if logistics.DeliveredAt != nil {
 		nodes = append(nodes, &TrackingNode{
 			Time:     logistics.DeliveredAt.Format(time.RFC3339),
-			Status:   "已送达",
+			Status:   "已签收",
 			Location: "",
-			Remark:   "商品已送达",
+			Remark:   "商品已签收",
 		})
 	}
 
-	return &QueryTrackingResponse{
-		Nodes: nodes,
-	}, nil
+	return &QueryTrackingResponse{Nodes: nodes}, nil
 }
 
 // CalculateFreightRequest 计算运费请求
@@ -190,9 +190,8 @@ type CalculateFreightResponse struct {
 	Freight float64
 }
 
-// CalculateFreight 计算运费
+// CalculateFreight 计算运费（简化规则：基础费 10 元，重量每千克 2 元，体积每立方厘米 1.5 元）
 func (l *LogisticsLogic) CalculateFreight(ctx context.Context, req *CalculateFreightRequest) (*CalculateFreightResponse, error) {
-	// 简化处理，实际应该根据地区、重量、体积计算
 	baseFreight := 10.0
 	weightFreight := req.Weight * 2.0
 	volumeFreight := req.Volume * 1.5
@@ -202,7 +201,5 @@ func (l *LogisticsLogic) CalculateFreight(ctx context.Context, req *CalculateFre
 		freight = 10
 	}
 
-	return &CalculateFreightResponse{
-		Freight: freight,
-	}, nil
+	return &CalculateFreightResponse{Freight: freight}, nil
 }

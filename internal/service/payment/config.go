@@ -2,14 +2,18 @@ package payment
 
 import (
 	"github.com/zeromicro/go-zero/zrpc"
+
+	"ecommerce-system/internal/pkg/client"
 )
 
 // Config 支付服务配置
 type Config struct {
 	zrpc.RpcServerConf
-	Database DatabaseConfig
-	BizRedis RedisConfig // 业务侧使用的 Redis 配置，避免与 zrpc.RpcServerConf 内置的 Redis 字段冲突
-	Payment  PaymentConfig
+	Database     DatabaseConfig
+	BizRedis     RedisConfig // 业务侧使用的 Redis 配置
+	Payment      PaymentConfig
+	OrderRpc     client.RpcConf // 订单服务地址（支付成功后回调）
+	InventoryRpc client.RpcConf // 库存服务地址（退款时回退库存）
 }
 
 // DatabaseConfig 数据库配置
