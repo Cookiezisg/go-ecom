@@ -51,3 +51,15 @@ configs/*/config.local.yaml
 # Temporary files
 tmp/
 temp/
+
+
+# Images
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.svg
+*.webp
+*.ico
+*.bmp
+*.tiff

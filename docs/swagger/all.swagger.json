@@ -10,49 +10,49 @@
   ],
   "tags": [
     {
-      "name": "ReviewService"
-    },
-    {
-      "name": "SearchService"
-    },
-    {
-      "name": "PaymentService"
-    },
-    {
-      "name": "ProductService"
-    },
-    {
-      "name": "FileService"
+      "name": "CartService"
     },
     {
       "name": "LogisticsService"
     },
     {
-      "name": "PromotionService"
-    },
-    {
-      "name": "RecommendService"
+      "name": "MessageService"
     },
     {
       "name": "UserService"
     },
     {
-      "name": "MessageService"
+      "name": "OrderService"
     },
     {
-      "name": "CartService"
+      "name": "ProductService"
+    },
+    {
+      "name": "RecommendService"
+    },
+    {
+      "name": "PaymentService"
+    },
+    {
+      "name": "SearchService"
     },
     {
       "name": "InventoryService"
     },
     {
-      "name": "JobService"
+      "name": "PromotionService"
     },
     {
-      "name": "OrderService"
+      "name": "ReviewService"
     },
     {
       "name": "SeckillService"
+    },
+    {
+      "name": "JobService"
+    },
+    {
+      "name": "FileService"
     }
   ],
   "consumes": [
