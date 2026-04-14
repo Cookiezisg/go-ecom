@@ -15,7 +15,7 @@ import (
 	"ecommerce-system/internal/service/user"
 )
 
-var configFile = flag.String("f", "configs/dev/config.yaml", "配置文件路径")
+var configFile = flag.String("f", "configs/dev/user-config.yaml", "配置文件路径")
 
 func main() {
 	flag.Parse()

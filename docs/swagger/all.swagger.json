@@ -10,34 +10,49 @@
   ],
   "tags": [
     {
-      "name": "CartService"
+      "name": "ReviewService"
     },
     {
-      "name": "OrderService"
-    },
-    {
-      "name": "ProductService"
-    },
-    {
-      "name": "SeckillService"
+      "name": "SearchService"
     },
     {
       "name": "PaymentService"
     },
     {
-      "name": "PromotionService"
-    },
-    {
-      "name": "UserService"
-    },
-    {
-      "name": "ReviewService"
+      "name": "ProductService"
     },
     {
       "name": "FileService"
     },
     {
+      "name": "LogisticsService"
+    },
+    {
+      "name": "PromotionService"
+    },
+    {
+      "name": "RecommendService"
+    },
+    {
+      "name": "UserService"
+    },
+    {
+      "name": "MessageService"
+    },
+    {
+      "name": "CartService"
+    },
+    {
       "name": "InventoryService"
+    },
+    {
+      "name": "JobService"
+    },
+    {
+      "name": "OrderService"
+    },
+    {
+      "name": "SeckillService"
     }
   ],
   "consumes": [
@@ -288,6 +303,115 @@
           }
         },
         "summary": "添加商品到购物车",
+        "tags": [
+          "CartService"
+        ]
+      }
+    },
+    "/api/v1/cart/clear": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ClearCart",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ClearCartResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "清空购物车",
+        "tags": [
+          "CartService"
+        ]
+      }
+    },
+    "/api/v1/cart/select": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "BatchSelect",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1BatchSelectRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1BatchSelectResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "批量选择",
+        "tags": [
+          "CartService"
+        ]
+      }
+    },
+    "/api/v1/cart/select/{sku_id}": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "SelectItem",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SelectItemRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1SelectItemResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "选择商品",
         "tags": [
           "CartService"
         ]
@@ -655,6 +779,46 @@
         ]
       }
     },
+    "/api/v1/inventory/batch": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "BatchGetInventory",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1BatchGetInventoryRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1BatchGetInventoryResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "BatchGetInventory",
+        "tags": [
+          "InventoryService"
+        ]
+      }
+    },
     "/api/v1/inventory/deduct": {
       "post": {
         "consumes": [
@@ -695,6 +859,166 @@
         ]
       }
     },
+    "/api/v1/inventory/lock": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "LockStock",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1LockStockRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1LockStockResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "LockStock",
+        "tags": [
+          "InventoryService"
+        ]
+      }
+    },
+    "/api/v1/inventory/rollback": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "RollbackStock",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RollbackStockRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1RollbackStockResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "RollbackStock",
+        "tags": [
+          "InventoryService"
+        ]
+      }
+    },
+    "/api/v1/inventory/stock-in": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "StockIn",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1StockInRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1StockInResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "StockIn",
+        "tags": [
+          "InventoryService"
+        ]
+      }
+    },
+    "/api/v1/inventory/unlock": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "UnlockStock",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UnlockStockRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1UnlockStockResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "UnlockStock",
+        "tags": [
+          "InventoryService"
+        ]
+      }
+    },
     "/api/v1/inventory/{sku_id}": {
       "get": {
         "consumes": [
@@ -730,6 +1054,545 @@
         "summary": "获取库存",
         "tags": [
           "InventoryService"
+        ]
+      }
+    },
+    "/api/v1/inventory/{sku_id}/logs": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetInventoryLog",
+        "parameters": [
+          {
+            "description": "sku_id 参数",
+            "in": "path",
+            "name": "sku_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetInventoryLogResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetInventoryLog",
+        "tags": [
+          "InventoryService"
+        ]
+      }
+    },
+    "/api/v1/jobs/cancel-expired-orders": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CancelExpiredOrders",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CancelExpiredOrdersRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CancelExpiredOrdersResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "CancelExpiredOrders",
+        "tags": [
+          "JobService"
+        ]
+      }
+    },
+    "/api/v1/jobs/generate-statistics": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GenerateStatistics",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1GenerateStatisticsRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GenerateStatisticsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GenerateStatistics",
+        "tags": [
+          "JobService"
+        ]
+      }
+    },
+    "/api/v1/jobs/process-expired-coupons": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ProcessExpiredCoupons",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ProcessExpiredCouponsRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ProcessExpiredCouponsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "ProcessExpiredCoupons",
+        "tags": [
+          "JobService"
+        ]
+      }
+    },
+    "/api/v1/logistics": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CreateLogistics",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateLogisticsRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CreateLogisticsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "CreateLogistics",
+        "tags": [
+          "LogisticsService"
+        ]
+      }
+    },
+    "/api/v1/logistics/freight/calculate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CalculateFreight",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CalculateFreightRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CalculateFreightResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "CalculateFreight",
+        "tags": [
+          "LogisticsService"
+        ]
+      }
+    },
+    "/api/v1/logistics/status": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "UpdateLogisticsStatus",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateLogisticsStatusRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateLogisticsStatusResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "UpdateLogisticsStatus",
+        "tags": [
+          "LogisticsService"
+        ]
+      }
+    },
+    "/api/v1/logistics/tracking/{logistics_no}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "QueryTracking",
+        "parameters": [
+          {
+            "description": "logistics_no 参数",
+            "in": "path",
+            "name": "logistics_no",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1QueryTrackingResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "QueryTracking",
+        "tags": [
+          "LogisticsService"
+        ]
+      }
+    },
+    "/api/v1/logistics/{order_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetLogistics",
+        "parameters": [
+          {
+            "description": "order_id 参数",
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetLogisticsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetLogistics",
+        "tags": [
+          "LogisticsService"
+        ]
+      }
+    },
+    "/api/v1/messages": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetMessageList",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetMessageListResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetMessageList",
+        "tags": [
+          "MessageService"
+        ]
+      },
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "SendMessage",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SendMessageRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1SendMessageResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "SendMessage",
+        "tags": [
+          "MessageService"
+        ]
+      }
+    },
+    "/api/v1/messages/read": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "BatchMarkAsRead",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1BatchMarkAsReadRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1BatchMarkAsReadResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "BatchMarkAsRead",
+        "tags": [
+          "MessageService"
+        ]
+      }
+    },
+    "/api/v1/messages/unread-count/{user_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetUnreadCount",
+        "parameters": [
+          {
+            "description": "user_id 参数",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetUnreadCountResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetUnreadCount",
+        "tags": [
+          "MessageService"
+        ]
+      }
+    },
+    "/api/v1/messages/{message_id}/read": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "MarkAsRead",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1MarkAsReadRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1MarkAsReadResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "MarkAsRead",
+        "tags": [
+          "MessageService"
         ]
       }
     },
@@ -878,6 +1741,166 @@
         ]
       }
     },
+    "/api/v1/orders/{id}/confirm-receive": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ConfirmReceive",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ConfirmReceiveRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ConfirmReceiveResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "ConfirmReceive",
+        "tags": [
+          "OrderService"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/pay": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "PayOrder",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1PayOrderRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1PayOrderResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "PayOrder",
+        "tags": [
+          "OrderService"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/refund": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "RefundOrder",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RefundOrderRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1RefundOrderResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "RefundOrder",
+        "tags": [
+          "OrderService"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/ship": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ShipOrder",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ShipOrderRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ShipOrderResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "ShipOrder",
+        "tags": [
+          "OrderService"
+        ]
+      }
+    },
     "/api/v1/payments": {
       "post": {
         "consumes": [
@@ -913,6 +1936,46 @@
           }
         },
         "summary": "创建支付",
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/api/v1/payments/callback": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "PaymentCallback",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1PaymentCallbackRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1PaymentCallbackResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "PaymentCallback",
         "tags": [
           "PaymentService"
         ]
@@ -991,6 +2054,44 @@
           }
         },
         "summary": "退款",
+        "tags": [
+          "PaymentService"
+        ]
+      }
+    },
+    "/api/v1/payments/{payment_no}/status": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "QueryPaymentStatus",
+        "parameters": [
+          {
+            "description": "payment_no 参数",
+            "in": "path",
+            "name": "payment_no",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1QueryPaymentStatusResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "QueryPaymentStatus",
         "tags": [
           "PaymentService"
         ]
@@ -1204,6 +2305,164 @@
         ]
       }
     },
+    "/api/v1/promotion/coupons/{coupon_id}/receive": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ReceiveCoupon",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ReceiveCouponRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ReceiveCouponResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "ReceiveCoupon",
+        "tags": [
+          "PromotionService"
+        ]
+      }
+    },
+    "/api/v1/promotion/discount/calculate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CalculateDiscount",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CalculateDiscountRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CalculateDiscountResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "CalculateDiscount",
+        "tags": [
+          "PromotionService"
+        ]
+      }
+    },
+    "/api/v1/promotion/points/exchange": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ExchangePoints",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ExchangePointsRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ExchangePointsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "ExchangePoints",
+        "tags": [
+          "PromotionService"
+        ]
+      }
+    },
+    "/api/v1/promotion/points/{user_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetUserPoints",
+        "parameters": [
+          {
+            "description": "user_id 参数",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetUserPointsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetUserPoints",
+        "tags": [
+          "PromotionService"
+        ]
+      }
+    },
     "/api/v1/promotion/promotions": {
       "get": {
         "consumes": [
@@ -1228,6 +2487,46 @@
           }
         },
         "summary": "GetPromotionList",
+        "tags": [
+          "PromotionService"
+        ]
+      }
+    },
+    "/api/v1/promotion/user-coupons/{user_coupon_id}/use": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "UseCoupon",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UseCouponRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1UseCouponResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "UseCoupon",
         "tags": [
           "PromotionService"
         ]
@@ -1268,6 +2567,149 @@
         "summary": "GetUserCouponList",
         "tags": [
           "PromotionService"
+        ]
+      }
+    },
+    "/api/v1/recommend/hot": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetHotProducts",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetHotProductsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetHotProducts",
+        "tags": [
+          "RecommendService"
+        ]
+      }
+    },
+    "/api/v1/recommend/personalized/{user_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetPersonalizedRecommend",
+        "parameters": [
+          {
+            "description": "user_id 参数",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetPersonalizedRecommendResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetPersonalizedRecommend",
+        "tags": [
+          "RecommendService"
+        ]
+      }
+    },
+    "/api/v1/recommend/realtime/{user_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetRealtimeRecommend",
+        "parameters": [
+          {
+            "description": "user_id 参数",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetRealtimeRecommendResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetRealtimeRecommend",
+        "tags": [
+          "RecommendService"
+        ]
+      }
+    },
+    "/api/v1/recommend/similar/{product_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetSimilarProducts",
+        "parameters": [
+          {
+            "description": "product_id 参数",
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetSimilarProductsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetSimilarProducts",
+        "tags": [
+          "RecommendService"
         ]
       }
     },
@@ -1462,6 +2904,133 @@
         "summary": "ReplyReview",
         "tags": [
           "ReviewService"
+        ]
+      }
+    },
+    "/api/v1/search/hot-keywords": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetHotKeywords",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetHotKeywordsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetHotKeywords",
+        "tags": [
+          "SearchService"
+        ]
+      }
+    },
+    "/api/v1/search/index/build": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "BuildProductIndex",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1BuildProductIndexRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1BuildProductIndexResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "BuildProductIndex",
+        "tags": [
+          "SearchService"
+        ]
+      }
+    },
+    "/api/v1/search/products": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "SearchProducts",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1SearchProductsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "SearchProducts",
+        "tags": [
+          "SearchService"
+        ]
+      }
+    },
+    "/api/v1/search/suggestions": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetSearchSuggestions",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetSearchSuggestionsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetSearchSuggestions",
+        "tags": [
+          "SearchService"
         ]
       }
     },
@@ -2736,12 +4305,33 @@
           "format": "int32",
           "type": "integer"
         },
+        "price": {
+          "description": "单价（字符串保留精度）",
+          "type": "string"
+        },
+        "product_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "product_name": {
+          "type": "string"
+        },
         "quantity": {
           "format": "int32",
           "type": "integer"
         },
         "sku_id": {
           "format": "int64",
+          "type": "string"
+        },
+        "sku_image": {
+          "type": "string"
+        },
+        "sku_name": {
+          "type": "string"
+        },
+        "stock_status": {
+          "description": "\"in_stock\" | \"low_stock\" | \"out_of_stock\"",
           "type": "string"
         },
         "updated_at": {
@@ -5301,6 +6891,39 @@
       },
       "type": "object"
     },
+    "v1PayOrderRequest": {
+      "properties": {
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_no": {
+          "type": "string"
+        },
+        "payment_method": {
+          "description": "支付方式: 1-微信, 2-支付宝, 3-银联",
+          "format": "int32",
+          "type": "integer"
+        },
+        "payment_no": {
+          "description": "支付单号",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1PayOrderResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
     "v1Payment": {
       "properties": {
         "amount": {
@@ -5676,6 +7299,33 @@
         "score": {
           "format": "double",
           "type": "number"
+        }
+      },
+      "type": "object"
+    },
+    "v1RefundOrderRequest": {
+      "properties": {
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_no": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1RefundOrderResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
         }
       },
       "type": "object"
@@ -6159,6 +7809,38 @@
       "type": "object"
     },
     "v1SendMessageResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ShipOrderRequest": {
+      "properties": {
+        "carrier": {
+          "description": "快递公司",
+          "type": "string"
+        },
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_no": {
+          "type": "string"
+        },
+        "tracking_no": {
+          "description": "快递单号",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ShipOrderResponse": {
       "properties": {
         "code": {
           "format": "int32",

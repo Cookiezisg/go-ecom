@@ -337,6 +337,28 @@ make start-all
 make start-services
 ```
 
+启动完成后可访问：
+
+| App | URL | 说明 |
+|---|---|---|
+| API Gateway | `http://localhost:8080` | 前后端联调统一入口 |
+| Swagger UI | `http://localhost:8095` | API 文档 |
+| Frontend User | `http://localhost:5173` | 商城前台 |
+| Frontend Admin | `http://localhost:5174` | 管理后台 |
+
+前端启动命令：
+
+```bash
+cd frontend-user && npm install && npm run dev
+cd frontend-admin && npm install && npm run dev
+```
+
+说明：
+
+- 两个前端都已配置代理到 `http://localhost:8080`
+- 文件上传走主 HTTP 服务的 `/api/v1/files/upload` 和 `/api/v1/files/batch-upload`
+- 这些上传接口不经过 gRPC Gateway 映射，而是由 `cmd/api-gateway` 中注册的 HTTP handler 直接处理
+
 ---
 
 ### Step 6 · Seed Data (Optional) · 填充测试数据（可选）

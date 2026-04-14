@@ -164,6 +164,166 @@
           "OrderService"
         ]
       }
+    },
+    "/api/v1/orders/{id}/confirm-receive": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ConfirmReceive",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ConfirmReceiveRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ConfirmReceiveResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "ConfirmReceive",
+        "tags": [
+          "OrderService"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/pay": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "PayOrder",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1PayOrderRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1PayOrderResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "PayOrder",
+        "tags": [
+          "OrderService"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/refund": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "RefundOrder",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1RefundOrderRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1RefundOrderResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "RefundOrder",
+        "tags": [
+          "OrderService"
+        ]
+      }
+    },
+    "/api/v1/orders/{id}/ship": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ShipOrder",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1ShipOrderRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ShipOrderResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "ShipOrder",
+        "tags": [
+          "OrderService"
+        ]
+      }
     }
   },
   "definitions": {
@@ -552,6 +712,98 @@
         "total_pages": {
           "format": "int32",
           "type": "integer"
+        }
+      },
+      "type": "object"
+    },
+    "v1PayOrderRequest": {
+      "properties": {
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_no": {
+          "type": "string"
+        },
+        "payment_method": {
+          "description": "支付方式: 1-微信, 2-支付宝, 3-银联",
+          "format": "int32",
+          "type": "integer"
+        },
+        "payment_no": {
+          "description": "支付单号",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1PayOrderResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1RefundOrderRequest": {
+      "properties": {
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_no": {
+          "type": "string"
+        },
+        "reason": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1RefundOrderResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ShipOrderRequest": {
+      "properties": {
+        "carrier": {
+          "description": "快递公司",
+          "type": "string"
+        },
+        "order_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "order_no": {
+          "type": "string"
+        },
+        "tracking_no": {
+          "description": "快递单号",
+          "type": "string"
+        }
+      },
+      "type": "object"
+    },
+    "v1ShipOrderResponse": {
+      "properties": {
+        "code": {
+          "format": "int32",
+          "type": "integer"
+        },
+        "message": {
+          "type": "string"
         }
       },
       "type": "object"

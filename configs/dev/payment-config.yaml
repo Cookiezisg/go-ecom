@@ -65,9 +65,11 @@ BizRedis:
 # 下游服务地址
 OrderRpc:
   Endpoint: 127.0.0.1:8082
+  Timeout: "5s"
 
 InventoryRpc:
   Endpoint: 127.0.0.1:8084
+  Timeout: "5s"
 
 # 支付配置
 Payment:

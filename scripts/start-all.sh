@@ -293,7 +293,7 @@ print_section "检查配置文件"
 # 核心服务配置列表（使用普通数组，兼容 macOS bash 3.2）
 # 格式: service-name:config-file:port
 CORE_SERVICES=(
-    "user-service:configs/dev/config.yaml:8000"
+    "user-service:configs/dev/user-config.yaml:8000"
     "product-service:configs/dev/product-config.yaml:8081"
     "order-service:configs/dev/order-config.yaml:8082"
     "payment-service:configs/dev/payment-config.yaml:8083"
@@ -615,6 +615,13 @@ if [ "$GATEWAY" = true ]; then
 fi
 
 echo ""
+print_info "前端应用:"
+echo "  - frontend-user: http://localhost:5173"
+echo "    启动命令: cd frontend-user && npm install && npm run dev"
+echo "  - frontend-admin: http://localhost:5174"
+echo "    启动命令: cd frontend-admin && npm install && npm run dev"
+echo "  - 两个前端都已配置代理到 API Gateway: http://localhost:8080"
+echo ""
 print_info "日志文件位置: logs/"
 print_info "查看日志: tail -f logs/<service-name>.log"
 echo ""
@@ -723,4 +730,3 @@ while true; do
     
     sleep 5
 done
-

@@ -38,16 +38,21 @@ Kafka:
 # 下游服务地址
 UserRpc:
   Endpoint: 127.0.0.1:8000
+  Timeout: "5s"
 
 ProductRpc:
   Endpoint: 127.0.0.1:8081
+  Timeout: "5s"
 
 InventoryRpc:
   Endpoint: 127.0.0.1:8084
+  Timeout: "5s"
 
 LogisticsRpc:
   Endpoint: 127.0.0.1:8008
+  Timeout: "5s"
 
 PromotionRpc:
   Endpoint: 127.0.0.1:8010
+  Timeout: "5s"
 

@@ -61,4 +61,5 @@ MongoDB:
 # 下游服务地址
 OrderRpc:
   Endpoint: 127.0.0.1:8082
+  Timeout: "5s"
 

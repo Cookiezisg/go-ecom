@@ -70,7 +70,9 @@ JWT:
 # 下游服务地址
 ProductRpc:
   Endpoint: 127.0.0.1:8081
+  Timeout: "5s"
 
 InventoryRpc:
   Endpoint: 127.0.0.1:8084
+  Timeout: "5s"
 

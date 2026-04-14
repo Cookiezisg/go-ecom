@@ -262,6 +262,30 @@ Upstreams:
       - Method: put
         Path: /api/v1/orders/:id/cancel
         RpcPath: order.v1.OrderService/CancelOrder
+      - Method: options
+        Path: /api/v1/orders/:id/confirm-receive
+        RpcPath: order.v1.OrderService/ConfirmReceive
+      - Method: put
+        Path: /api/v1/orders/:id/confirm-receive
+        RpcPath: order.v1.OrderService/ConfirmReceive
+      - Method: options
+        Path: /api/v1/orders/:id/pay
+        RpcPath: order.v1.OrderService/PayOrder
+      - Method: put
+        Path: /api/v1/orders/:id/pay
+        RpcPath: order.v1.OrderService/PayOrder
+      - Method: options
+        Path: /api/v1/orders/:id/ship
+        RpcPath: order.v1.OrderService/ShipOrder
+      - Method: put
+        Path: /api/v1/orders/:id/ship
+        RpcPath: order.v1.OrderService/ShipOrder
+      - Method: options
+        Path: /api/v1/orders/:id/refund
+        RpcPath: order.v1.OrderService/RefundOrder
+      - Method: put
+        Path: /api/v1/orders/:id/refund
+        RpcPath: order.v1.OrderService/RefundOrder
 
   # 支付服务
   - Name: payment-service
@@ -287,6 +311,18 @@ Upstreams:
       - Method: post
         Path: /api/v1/payments/:payment_no/refund
         RpcPath: payment.v1.PaymentService/Refund
+      - Method: options
+        Path: /api/v1/payments/:payment_no/status
+        RpcPath: payment.v1.PaymentService/QueryPaymentStatus
+      - Method: get
+        Path: /api/v1/payments/:payment_no/status
+        RpcPath: payment.v1.PaymentService/QueryPaymentStatus
+      - Method: options
+        Path: /api/v1/payments/callback
+        RpcPath: payment.v1.PaymentService/PaymentCallback
+      - Method: post
+        Path: /api/v1/payments/callback
+        RpcPath: payment.v1.PaymentService/PaymentCallback
 
   # 评价服务
   - Name: review-service
@@ -352,6 +388,42 @@ Upstreams:
       - Method: post
         Path: /api/v1/inventory/deduct
         RpcPath: inventory.v1.InventoryService/DeductStock
+      - Method: options
+        Path: /api/v1/inventory/batch
+        RpcPath: inventory.v1.InventoryService/BatchGetInventory
+      - Method: post
+        Path: /api/v1/inventory/batch
+        RpcPath: inventory.v1.InventoryService/BatchGetInventory
+      - Method: options
+        Path: /api/v1/inventory/lock
+        RpcPath: inventory.v1.InventoryService/LockStock
+      - Method: post
+        Path: /api/v1/inventory/lock
+        RpcPath: inventory.v1.InventoryService/LockStock
+      - Method: options
+        Path: /api/v1/inventory/unlock
+        RpcPath: inventory.v1.InventoryService/UnlockStock
+      - Method: post
+        Path: /api/v1/inventory/unlock
+        RpcPath: inventory.v1.InventoryService/UnlockStock
+      - Method: options
+        Path: /api/v1/inventory/rollback
+        RpcPath: inventory.v1.InventoryService/RollbackStock
+      - Method: post
+        Path: /api/v1/inventory/rollback
+        RpcPath: inventory.v1.InventoryService/RollbackStock
+      - Method: options
+        Path: /api/v1/inventory/stock-in
+        RpcPath: inventory.v1.InventoryService/StockIn
+      - Method: post
+        Path: /api/v1/inventory/stock-in
+        RpcPath: inventory.v1.InventoryService/StockIn
+      - Method: options
+        Path: /api/v1/inventory/:sku_id/logs
+        RpcPath: inventory.v1.InventoryService/GetInventoryLog
+      - Method: get
+        Path: /api/v1/inventory/:sku_id/logs
+        RpcPath: inventory.v1.InventoryService/GetInventoryLog
 
   # 购物车服务
   - Name: cart-service
@@ -380,6 +452,24 @@ Upstreams:
       - Method: delete
         Path: /api/v1/cart/:sku_ids
         RpcPath: cart.v1.CartService/RemoveItem
+      - Method: options
+        Path: /api/v1/cart/clear
+        RpcPath: cart.v1.CartService/ClearCart
+      - Method: delete
+        Path: /api/v1/cart/clear
+        RpcPath: cart.v1.CartService/ClearCart
+      - Method: options
+        Path: /api/v1/cart/select/:sku_id
+        RpcPath: cart.v1.CartService/SelectItem
+      - Method: put
+        Path: /api/v1/cart/select/:sku_id
+        RpcPath: cart.v1.CartService/SelectItem
+      - Method: options
+        Path: /api/v1/cart/select
+        RpcPath: cart.v1.CartService/BatchSelect
+      - Method: put
+        Path: /api/v1/cart/select
+        RpcPath: cart.v1.CartService/BatchSelect
 
   # 营销服务
   - Name: promotion-service
@@ -405,6 +495,194 @@ Upstreams:
       - Method: get
         Path: /api/v1/promotion/promotions
         RpcPath: promotion.v1.PromotionService/GetPromotionList
+      - Method: options
+        Path: /api/v1/promotion/coupons/:coupon_id/receive
+        RpcPath: promotion.v1.PromotionService/ReceiveCoupon
+      - Method: post
+        Path: /api/v1/promotion/coupons/:coupon_id/receive
+        RpcPath: promotion.v1.PromotionService/ReceiveCoupon
+      - Method: options
+        Path: /api/v1/promotion/user-coupons/:user_coupon_id/use
+        RpcPath: promotion.v1.PromotionService/UseCoupon
+      - Method: post
+        Path: /api/v1/promotion/user-coupons/:user_coupon_id/use
+        RpcPath: promotion.v1.PromotionService/UseCoupon
+      - Method: options
+        Path: /api/v1/promotion/discount/calculate
+        RpcPath: promotion.v1.PromotionService/CalculateDiscount
+      - Method: post
+        Path: /api/v1/promotion/discount/calculate
+        RpcPath: promotion.v1.PromotionService/CalculateDiscount
+      - Method: options
+        Path: /api/v1/promotion/points/:user_id
+        RpcPath: promotion.v1.PromotionService/GetUserPoints
+      - Method: get
+        Path: /api/v1/promotion/points/:user_id
+        RpcPath: promotion.v1.PromotionService/GetUserPoints
+      - Method: options
+        Path: /api/v1/promotion/points/exchange
+        RpcPath: promotion.v1.PromotionService/ExchangePoints
+      - Method: post
+        Path: /api/v1/promotion/points/exchange
+        RpcPath: promotion.v1.PromotionService/ExchangePoints
+
+  # 物流服务
+  - Name: logistics-service
+    Grpc:
+      Target: 127.0.0.1:8008
+      Timeout: 3000
+    Mappings:
+      - Method: options
+        Path: /api/v1/logistics
+        RpcPath: logistics.v1.LogisticsService/CreateLogistics
+      - Method: post
+        Path: /api/v1/logistics
+        RpcPath: logistics.v1.LogisticsService/CreateLogistics
+      - Method: options
+        Path: /api/v1/logistics/:order_id
+        RpcPath: logistics.v1.LogisticsService/GetLogistics
+      - Method: get
+        Path: /api/v1/logistics/:order_id
+        RpcPath: logistics.v1.LogisticsService/GetLogistics
+      - Method: options
+        Path: /api/v1/logistics/status
+        RpcPath: logistics.v1.LogisticsService/UpdateLogisticsStatus
+      - Method: put
+        Path: /api/v1/logistics/status
+        RpcPath: logistics.v1.LogisticsService/UpdateLogisticsStatus
+      - Method: options
+        Path: /api/v1/logistics/tracking/:logistics_no
+        RpcPath: logistics.v1.LogisticsService/QueryTracking
+      - Method: get
+        Path: /api/v1/logistics/tracking/:logistics_no
+        RpcPath: logistics.v1.LogisticsService/QueryTracking
+      - Method: options
+        Path: /api/v1/logistics/freight/calculate
+        RpcPath: logistics.v1.LogisticsService/CalculateFreight
+      - Method: post
+        Path: /api/v1/logistics/freight/calculate
+        RpcPath: logistics.v1.LogisticsService/CalculateFreight
+
+  # 搜索服务
+  - Name: search-service
+    Grpc:
+      Target: 127.0.0.1:8010
+      Timeout: 3000
+    Mappings:
+      - Method: options
+        Path: /api/v1/search/products
+        RpcPath: search.v1.SearchService/SearchProducts
+      - Method: get
+        Path: /api/v1/search/products
+        RpcPath: search.v1.SearchService/SearchProducts
+      - Method: options
+        Path: /api/v1/search/suggestions
+        RpcPath: search.v1.SearchService/GetSearchSuggestions
+      - Method: get
+        Path: /api/v1/search/suggestions
+        RpcPath: search.v1.SearchService/GetSearchSuggestions
+      - Method: options
+        Path: /api/v1/search/hot-keywords
+        RpcPath: search.v1.SearchService/GetHotKeywords
+      - Method: get
+        Path: /api/v1/search/hot-keywords
+        RpcPath: search.v1.SearchService/GetHotKeywords
+      - Method: options
+        Path: /api/v1/search/index/build
+        RpcPath: search.v1.SearchService/BuildProductIndex
+      - Method: post
+        Path: /api/v1/search/index/build
+        RpcPath: search.v1.SearchService/BuildProductIndex
+
+  # 推荐服务
+  - Name: recommend-service
+    Grpc:
+      Target: 127.0.0.1:8011
+      Timeout: 3000
+    Mappings:
+      - Method: options
+        Path: /api/v1/recommend/personalized/:user_id
+        RpcPath: recommend.v1.RecommendService/GetPersonalizedRecommend
+      - Method: get
+        Path: /api/v1/recommend/personalized/:user_id
+        RpcPath: recommend.v1.RecommendService/GetPersonalizedRecommend
+      - Method: options
+        Path: /api/v1/recommend/similar/:product_id
+        RpcPath: recommend.v1.RecommendService/GetSimilarProducts
+      - Method: get
+        Path: /api/v1/recommend/similar/:product_id
+        RpcPath: recommend.v1.RecommendService/GetSimilarProducts
+      - Method: options
+        Path: /api/v1/recommend/hot
+        RpcPath: recommend.v1.RecommendService/GetHotProducts
+      - Method: get
+        Path: /api/v1/recommend/hot
+        RpcPath: recommend.v1.RecommendService/GetHotProducts
+      - Method: options
+        Path: /api/v1/recommend/realtime/:user_id
+        RpcPath: recommend.v1.RecommendService/GetRealtimeRecommend
+      - Method: get
+        Path: /api/v1/recommend/realtime/:user_id
+        RpcPath: recommend.v1.RecommendService/GetRealtimeRecommend
+
+  # 消息服务
+  - Name: message-service
+    Grpc:
+      Target: 127.0.0.1:8009
+      Timeout: 3000
+    Mappings:
+      - Method: options
+        Path: /api/v1/messages
+        RpcPath: message.v1.MessageService/GetMessageList
+      - Method: get
+        Path: /api/v1/messages
+        RpcPath: message.v1.MessageService/GetMessageList
+      - Method: post
+        Path: /api/v1/messages
+        RpcPath: message.v1.MessageService/SendMessage
+      - Method: options
+        Path: /api/v1/messages/:message_id/read
+        RpcPath: message.v1.MessageService/MarkAsRead
+      - Method: put
+        Path: /api/v1/messages/:message_id/read
+        RpcPath: message.v1.MessageService/MarkAsRead
+      - Method: options
+        Path: /api/v1/messages/read
+        RpcPath: message.v1.MessageService/BatchMarkAsRead
+      - Method: put
+        Path: /api/v1/messages/read
+        RpcPath: message.v1.MessageService/BatchMarkAsRead
+      - Method: options
+        Path: /api/v1/messages/unread-count/:user_id
+        RpcPath: message.v1.MessageService/GetUnreadCount
+      - Method: get
+        Path: /api/v1/messages/unread-count/:user_id
+        RpcPath: message.v1.MessageService/GetUnreadCount
+
+  # 定时任务服务
+  - Name: job-service
+    Grpc:
+      Target: 127.0.0.1:8013
+      Timeout: 5000
+    Mappings:
+      - Method: options
+        Path: /api/v1/jobs/cancel-expired-orders
+        RpcPath: job.v1.JobService/CancelExpiredOrders
+      - Method: post
+        Path: /api/v1/jobs/cancel-expired-orders
+        RpcPath: job.v1.JobService/CancelExpiredOrders
+      - Method: options
+        Path: /api/v1/jobs/process-expired-coupons
+        RpcPath: job.v1.JobService/ProcessExpiredCoupons
+      - Method: post
+        Path: /api/v1/jobs/process-expired-coupons
+        RpcPath: job.v1.JobService/ProcessExpiredCoupons
+      - Method: options
+        Path: /api/v1/jobs/generate-statistics
+        RpcPath: job.v1.JobService/GenerateStatistics
+      - Method: post
+        Path: /api/v1/jobs/generate-statistics
+        RpcPath: job.v1.JobService/GenerateStatistics
 
   # 文件服务
   # 注意：文件上传路由（/api/v1/files/upload 和 /api/v1/files/batch-upload）

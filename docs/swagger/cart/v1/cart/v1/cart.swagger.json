@@ -87,6 +87,115 @@
         ]
       }
     },
+    "/api/v1/cart/clear": {
+      "delete": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "ClearCart",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1ClearCartResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "清空购物车",
+        "tags": [
+          "CartService"
+        ]
+      }
+    },
+    "/api/v1/cart/select": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "BatchSelect",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1BatchSelectRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1BatchSelectResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "批量选择",
+        "tags": [
+          "CartService"
+        ]
+      }
+    },
+    "/api/v1/cart/select/{sku_id}": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "SelectItem",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1SelectItemRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1SelectItemResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "选择商品",
+        "tags": [
+          "CartService"
+        ]
+      }
+    },
     "/api/v1/cart/{sku_ids}": {
       "delete": {
         "consumes": [
@@ -272,12 +381,33 @@
           "format": "int32",
           "type": "integer"
         },
+        "price": {
+          "description": "单价（字符串保留精度）",
+          "type": "string"
+        },
+        "product_id": {
+          "format": "int64",
+          "type": "string"
+        },
+        "product_name": {
+          "type": "string"
+        },
         "quantity": {
           "format": "int32",
           "type": "integer"
         },
         "sku_id": {
           "format": "int64",
+          "type": "string"
+        },
+        "sku_image": {
+          "type": "string"
+        },
+        "sku_name": {
+          "type": "string"
+        },
+        "stock_status": {
+          "description": "\"in_stock\" | \"low_stock\" | \"out_of_stock\"",
           "type": "string"
         },
         "updated_at": {

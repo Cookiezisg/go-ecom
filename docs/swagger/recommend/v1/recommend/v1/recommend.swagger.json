@@ -19,7 +19,151 @@
   "produces": [
     "application/json"
   ],
-  "paths": {},
+  "paths": {
+    "/api/v1/recommend/hot": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetHotProducts",
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetHotProductsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetHotProducts",
+        "tags": [
+          "RecommendService"
+        ]
+      }
+    },
+    "/api/v1/recommend/personalized/{user_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetPersonalizedRecommend",
+        "parameters": [
+          {
+            "description": "user_id 参数",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetPersonalizedRecommendResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetPersonalizedRecommend",
+        "tags": [
+          "RecommendService"
+        ]
+      }
+    },
+    "/api/v1/recommend/realtime/{user_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetRealtimeRecommend",
+        "parameters": [
+          {
+            "description": "user_id 参数",
+            "in": "path",
+            "name": "user_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetRealtimeRecommendResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetRealtimeRecommend",
+        "tags": [
+          "RecommendService"
+        ]
+      }
+    },
+    "/api/v1/recommend/similar/{product_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetSimilarProducts",
+        "parameters": [
+          {
+            "description": "product_id 参数",
+            "in": "path",
+            "name": "product_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetSimilarProductsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetSimilarProducts",
+        "tags": [
+          "RecommendService"
+        ]
+      }
+    }
+  },
   "definitions": {
     "protobufAny": {
       "additionalProperties": {},

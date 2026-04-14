@@ -19,7 +19,204 @@
   "produces": [
     "application/json"
   ],
-  "paths": {},
+  "paths": {
+    "/api/v1/logistics": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CreateLogistics",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CreateLogisticsRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CreateLogisticsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "CreateLogistics",
+        "tags": [
+          "LogisticsService"
+        ]
+      }
+    },
+    "/api/v1/logistics/freight/calculate": {
+      "post": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "CalculateFreight",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1CalculateFreightRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1CalculateFreightResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "CalculateFreight",
+        "tags": [
+          "LogisticsService"
+        ]
+      }
+    },
+    "/api/v1/logistics/status": {
+      "put": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "UpdateLogisticsStatus",
+        "parameters": [
+          {
+            "description": "请求体",
+            "in": "body",
+            "name": "body",
+            "required": true,
+            "schema": {
+              "$ref": "#/definitions/v1UpdateLogisticsStatusRequest"
+            }
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1UpdateLogisticsStatusResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "UpdateLogisticsStatus",
+        "tags": [
+          "LogisticsService"
+        ]
+      }
+    },
+    "/api/v1/logistics/tracking/{logistics_no}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "QueryTracking",
+        "parameters": [
+          {
+            "description": "logistics_no 参数",
+            "in": "path",
+            "name": "logistics_no",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1QueryTrackingResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "QueryTracking",
+        "tags": [
+          "LogisticsService"
+        ]
+      }
+    },
+    "/api/v1/logistics/{order_id}": {
+      "get": {
+        "consumes": [
+          "application/json"
+        ],
+        "operationId": "GetLogistics",
+        "parameters": [
+          {
+            "description": "order_id 参数",
+            "in": "path",
+            "name": "order_id",
+            "required": true,
+            "type": "string"
+          }
+        ],
+        "produces": [
+          "application/json"
+        ],
+        "responses": {
+          "200": {
+            "description": "成功",
+            "schema": {
+              "$ref": "#/definitions/v1GetLogisticsResponse"
+            }
+          },
+          "default": {
+            "description": "错误",
+            "schema": {
+              "$ref": "#/definitions/rpcStatus"
+            }
+          }
+        },
+        "summary": "GetLogistics",
+        "tags": [
+          "LogisticsService"
+        ]
+      }
+    }
+  },
   "definitions": {
     "protobufAny": {
       "additionalProperties": {},
