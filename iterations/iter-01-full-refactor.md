@@ -1,4 +1,11 @@
-# 全量重构计划
+# Iteration 01 — 全量基础重构
+
+> 来源：原 `REFACTOR_PLAN.md`
+> 分支：`feature/refactor-all-services`
+> 完成时间：2026-04-14
+> 合并目标：`main`
+
+---
 
 分支：`feature/refactor-all-services`
 合并目标：`main`
