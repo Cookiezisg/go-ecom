@@ -22,15 +22,17 @@ type SearchRepository interface {
 }
 
 type searchRepository struct {
-	redis    *redis.Client
-	esClient *search.Client
+	redis        *redis.Client
+	esClient     *search.Client
+	snapshotRepo ProductSnapshotRepository
 }
 
 // NewSearchRepository 创建搜索仓库
-func NewSearchRepository(redis *redis.Client, esClient *search.Client) SearchRepository {
+func NewSearchRepository(redis *redis.Client, esClient *search.Client, snapshotRepo ProductSnapshotRepository) SearchRepository {
 	return &searchRepository{
-		redis:    redis,
-		esClient: esClient,
+		redis:        redis,
+		esClient:     esClient,
+		snapshotRepo: snapshotRepo,
 	}
 }
 
@@ -39,6 +41,14 @@ func (r *searchRepository) SearchProducts(ctx context.Context, keyword string, c
 	// 如果Elasticsearch不可用，返回空结果
 	if r.esClient == nil {
 		return []map[string]interface{}{}, 0, nil
+	}
+
+	// 分页默认值
+	if page <= 0 {
+		page = 1
+	}
+	if pageSize <= 0 {
+		pageSize = 20
 	}
 
 	// 构建查询
@@ -74,7 +84,7 @@ func (r *searchRepository) SearchProducts(ctx context.Context, keyword string, c
 	// 状态筛选（只搜索上架商品）
 	mustClauses = append(mustClauses, map[string]interface{}{
 		"term": map[string]interface{}{
-			"status": 1, // 1-上架
+			"status": 1,
 		},
 	})
 
@@ -137,9 +147,64 @@ func (r *searchRepository) GetHotKeywords(ctx context.Context, limit int) ([]str
 	return keywords, nil
 }
 
-// BuildProductIndex 构建商品索引
+// BuildProductIndex 构建商品索引，将商品数据从 MySQL 同步到 Elasticsearch
+// productIDs 为空时自动全量索引所有商品
 func (r *searchRepository) BuildProductIndex(ctx context.Context, productIDs []uint64) error {
-	// 实际实现应该将商品数据索引到Elasticsearch
-	// 这里简化处理
+	if r.esClient == nil {
+		return fmt.Errorf("Elasticsearch 客户端未初始化")
+	}
+	if r.snapshotRepo == nil {
+		return fmt.Errorf("snapshotRepo 未初始化")
+	}
+
+	// 未指定 ID 时全量索引：和 ES 现有文档做 diff，发现 stale 文档则重建索引
+	if len(productIDs) == 0 {
+		var err error
+		productIDs, err = r.snapshotRepo.ListAllProductIDs(ctx)
+		if err != nil {
+			return fmt.Errorf("获取商品列表失败: %w", err)
+		}
+
+		// 构建 MySQL ID 集合
+		mysqlIDs := make(map[string]struct{}, len(productIDs))
+		for _, id := range productIDs {
+			mysqlIDs[fmt.Sprintf("%d", id)] = struct{}{}
+		}
+
+		// 拉取 ES 中现有的所有文档 ID
+		esIDs, err := r.esClient.ListAllDocumentIDs(ctx, ProductIndexName)
+		if err != nil {
+			return fmt.Errorf("获取 ES 文档列表失败: %w", err)
+		}
+
+		// 检测 stale 文档（ES 有、MySQL 没有）
+		stale := 0
+		for _, esID := range esIDs {
+			if _, ok := mysqlIDs[esID]; !ok {
+				stale++
+			}
+		}
+
+		// 有 stale 文档时重建整个索引，否则只做 upsert
+		if stale > 0 {
+			if err := r.esClient.DeleteIndex(ctx, ProductIndexName); err != nil {
+				return fmt.Errorf("删除旧索引失败: %w", err)
+			}
+			if err := r.esClient.CreateIndex(ctx, ProductIndexName, ProductIndexMapping); err != nil {
+				return fmt.Errorf("重建索引失败: %w", err)
+			}
+		}
+	}
+
+	for _, id := range productIDs {
+		doc, err := r.snapshotRepo.BuildProductDocument(ctx, id)
+		if err != nil {
+			return fmt.Errorf("构建商品 %d 文档失败: %w", id, err)
+		}
+		docID := fmt.Sprintf("%d", id)
+		if err := r.esClient.IndexDocument(ctx, ProductIndexName, docID, doc); err != nil {
+			return fmt.Errorf("索引商品 %d 失败: %w", id, err)
+		}
+	}
 	return nil
 }

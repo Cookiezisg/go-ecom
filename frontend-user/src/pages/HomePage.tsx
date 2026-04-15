@@ -25,9 +25,8 @@ export function HomePage() {
     <div className="stack">
       <section className="hero">
         <div>
-          <span className="eyebrow">精选好物</span>
-          <h1>发现你想买的东西。</h1>
-          <p>新品、热卖和限时活动都在这里。</p>
+          <h1>欢迎选购</h1>
+          <p>看看最近上新的商品和活动。</p>
           <div className="hero-actions">
             <Link className="primary-button" to="/products">
               立即选购
@@ -35,20 +34,6 @@ export function HomePage() {
             <Link className="secondary-button" to="/login">
               登录
             </Link>
-          </div>
-        </div>
-        <div className="hero-panel">
-          <div className="metric-card">
-            <strong>Hot</strong>
-            <span>热门推荐</span>
-          </div>
-          <div className="metric-card">
-            <strong>New</strong>
-            <span>最新上架</span>
-          </div>
-          <div className="metric-card">
-            <strong>Sale</strong>
-            <span>限时秒杀</span>
           </div>
         </div>
       </section>
@@ -145,8 +130,8 @@ function ProductGrid(props: {
       {props.items.map((item) => (
         <Link className="product-card" key={item.id} to={`${props.pathPrefix || "/products"}/${item.id}`}>
           <div className="product-image">
-            {item.main_image || item.local_main_image ? (
-              <img alt={item.name} src={item.main_image || item.local_main_image} />
+            {item.local_main_image || item.main_image ? (
+              <img alt={item.name} src={item.local_main_image || item.main_image} />
             ) : (
               <span>NO IMAGE</span>
             )}

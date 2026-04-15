@@ -110,6 +110,7 @@ message ListOrdersRequest {
   int32 status = 2; // 订单状态，-1表示全部
   int32 page = 3;
   int32 page_size = 4;
+  string keyword = 5; // 关键词（订单号/收货人）
 }
 
 // 获取订单列表响应

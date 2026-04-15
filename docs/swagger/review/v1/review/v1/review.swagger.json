@@ -73,6 +73,35 @@
             "name": "product_id",
             "required": true,
             "type": "string"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "product_id",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "description": "0-全部, 1-5星",
+            "format": "int32",
+            "in": "query",
+            "name": "rating",
+            "required": false,
+            "type": "integer"
           }
         ],
         "produces": [
@@ -111,6 +140,13 @@
             "name": "product_id",
             "required": true,
             "type": "string"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "product_id",
+            "required": false,
+            "type": "string"
           }
         ],
         "produces": [
@@ -148,6 +184,13 @@
             "in": "path",
             "name": "review_id",
             "required": true,
+            "type": "string"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "review_id",
+            "required": false,
             "type": "string"
           }
         ],

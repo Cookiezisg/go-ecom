@@ -18,5 +18,14 @@ export async function uploadImage(file: File, category = "image") {
     },
     timeout: 60000,
   });
-  return response.data;
+  const payload = response.data as unknown as Record<string, unknown>;
+  const data = (payload.data as Record<string, unknown> | undefined) || {};
+  return {
+    ...(payload as object),
+    data: {
+      file_id: String(data.file_id ?? data.fileId ?? ""),
+      file_name: String(data.file_name ?? data.fileName ?? ""),
+      file_url: String(data.file_url ?? data.fileUrl ?? ""),
+    },
+  };
 }

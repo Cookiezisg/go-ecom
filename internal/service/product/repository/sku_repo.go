@@ -13,6 +13,7 @@ import (
 type ListSkusRequest struct {
 	ProductID uint64
 	Status    int8 // -1-全部, 0-下架, 1-上架
+	Keyword   string
 	Page      int
 	PageSize  int
 }
@@ -113,6 +114,10 @@ func (r *skuRepository) List(ctx context.Context, req *ListSkusRequest) ([]*mode
 	// 条件过滤
 	if req.ProductID > 0 {
 		query = query.Where("product_id = ?", req.ProductID)
+	}
+	if req.Keyword != "" {
+		like := "%" + req.Keyword + "%"
+		query = query.Where("sku_code LIKE ? OR name LIKE ?", like, like)
 	}
 	// 只有当 status >= 0 时才过滤（-1 表示查询所有状态）
 	if req.Status >= 0 {

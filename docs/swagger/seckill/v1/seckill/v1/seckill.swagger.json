@@ -66,6 +66,44 @@
           "application/json"
         ],
         "operationId": "ListSeckillActivities",
+        "parameters": [
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "description": "状态：0-未开始，1-进行中，2-已结束",
+            "format": "int32",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "description": "是否包含已禁用活动（管理后台用）",
+            "in": "query",
+            "name": "include_disabled",
+            "required": false,
+            "type": "boolean"
+          },
+          {
+            "description": "关键词（活动名/SKU名称）",
+            "in": "query",
+            "name": "keyword",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -140,6 +178,13 @@
             "name": "id",
             "required": true,
             "type": "string"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "id",
+            "required": false,
+            "type": "string"
           }
         ],
         "produces": [
@@ -175,6 +220,13 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "type": "string"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "id",
+            "required": false,
             "type": "string"
           }
         ],
@@ -368,6 +420,10 @@
         "include_disabled": {
           "description": "是否包含已禁用活动（管理后台用）",
           "type": "boolean"
+        },
+        "keyword": {
+          "description": "关键词（活动名/SKU名称）",
+          "type": "string"
         },
         "page": {
           "format": "int32",

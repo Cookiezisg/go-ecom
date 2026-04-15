@@ -13,6 +13,8 @@ import (
 // ProductSnapshotRepository 从 MySQL 读取商品/SKU 快照，组装 ES 文档
 type ProductSnapshotRepository interface {
 	BuildProductDocument(ctx context.Context, productID uint64) (map[string]interface{}, error)
+	// ListAllProductIDs 返回所有未删除商品的 ID 列表
+	ListAllProductIDs(ctx context.Context) ([]uint64, error)
 }
 
 type productSnapshotRepo struct {
@@ -51,6 +53,14 @@ type skuRow struct {
 	Image     string     `gorm:"column:image"`
 	UpdatedAt time.Time  `gorm:"column:updated_at"`
 	DeletedAt *time.Time `gorm:"column:deleted_at"`
+}
+
+func (r *productSnapshotRepo) ListAllProductIDs(ctx context.Context) ([]uint64, error) {
+	var ids []uint64
+	err := r.db.WithContext(ctx).Table("product").
+		Where("deleted_at IS NULL").
+		Pluck("id", &ids).Error
+	return ids, err
 }
 
 func (r *productSnapshotRepo) BuildProductDocument(ctx context.Context, productID uint64) (map[string]interface{}, error) {

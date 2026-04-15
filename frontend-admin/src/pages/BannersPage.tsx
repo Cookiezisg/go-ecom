@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createBanner, deleteBanner, listBanners, updateBanner } from "@/api/admin";
+import { DataTableControls } from "@/components/DataTableControls";
 import { uploadImage } from "@/api/upload";
 
 type BannerForm = {
@@ -20,9 +21,12 @@ type BannerForm = {
 export function BannersPage() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<BannerForm | null>(null);
+  const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const query = useQuery({
-    queryKey: ["admin-banners"],
-    queryFn: () => listBanners(),
+    queryKey: ["admin-banners", keyword],
+    queryFn: () => listBanners({ status: -1, limit: 200, keyword }),
   });
   const saveMutation = useMutation({
     mutationFn: (payload: BannerForm) => (payload.id ? updateBanner(payload.id, payload) : createBanner(payload)),
@@ -57,6 +61,7 @@ export function BannersPage() {
   }
 
   const list = query.data?.data ?? [];
+  const pagedList = list.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <section className="admin-grid two-panel">
@@ -67,6 +72,22 @@ export function BannersPage() {
             新建 Banner
           </button>
         </div>
+        <DataTableControls
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          onSearchChange={(value) => {
+            setKeyword(value);
+            setPage(1);
+          }}
+          page={page}
+          pageSize={pageSize}
+          searchPlaceholder="搜索标题、描述、链接"
+          searchValue={keyword}
+          total={list.length}
+        />
         <table className="table">
           <thead>
             <tr>
@@ -78,7 +99,7 @@ export function BannersPage() {
             </tr>
           </thead>
           <tbody>
-            {list.map((banner) => (
+            {pagedList.map((banner) => (
               <tr key={String(banner.id)}>
                 <td>{String(banner.id)}</td>
                 <td>{String(banner.title)}</td>

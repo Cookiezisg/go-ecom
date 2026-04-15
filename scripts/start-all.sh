@@ -268,6 +268,43 @@ else
 fi
 
 # ============================================
+# 2.5 初始化 root 管理员账户
+# ============================================
+print_section "初始化管理员账户"
+
+if command -v mysql &> /dev/null; then
+    MYSQL_ECOM="mysql -h127.0.0.1 -P3306 -uroot -p123456 ecommerce"
+
+    ROOT_EXISTS=$($MYSQL_ECOM -sN -e "SELECT COUNT(*) FROM user WHERE username='root' AND deleted_at IS NULL;" 2>/dev/null || echo "0")
+
+    if [ "$ROOT_EXISTS" = "0" ]; then
+        print_info "创建 root 管理员账户 (id=0)..."
+
+        # 清理 id=0 的脏数据（如有）
+        $MYSQL_ECOM -e "DELETE FROM credential WHERE user_id = 0; DELETE FROM user WHERE id = 0;" > /dev/null 2>&1 || true
+
+        # 插入 root 用户（id=0 需要 NO_AUTO_VALUE_ON_ZERO 模式）
+        $MYSQL_ECOM -e "
+SET SESSION sql_mode = CONCAT(IF(@@SESSION.sql_mode = '', '', CONCAT(@@SESSION.sql_mode, ',')), 'NO_AUTO_VALUE_ON_ZERO');
+INSERT INTO user (id, username, nickname, status, created_at, updated_at)
+VALUES (0, 'root', '管理员', 1, NOW(), NOW());
+INSERT INTO credential (user_id, credential_type, credential_key, credential_value, created_at, updated_at)
+VALUES (0, 1, 'root', '\$2a\$10\$Kd9FvCAQec1yWbAbgLOlUOrHS2Yutp/hAg/DjOjHTcoqclnMi.6Za', NOW(), NOW());
+" > /dev/null 2>&1
+
+        if [ $? -eq 0 ]; then
+            print_success "root 管理员账户创建成功 (用户名: root / 密码: 123456)"
+        else
+            print_warning "root 管理员账户创建失败，请手动检查数据库"
+        fi
+    else
+        print_success "root 管理员账户已存在，跳过"
+    fi
+else
+    print_warning "未找到 mysql 客户端，跳过管理员账户初始化"
+fi
+
+# ============================================
 # 3. 初始化秒杀服务（生成 proto 文件）
 # ============================================
 print_section "初始化秒杀服务"
@@ -528,6 +565,36 @@ for service_config in "${EXTENDED_SERVICES[@]}"; do
     sleep 2
 done
 
+# 验证所有扩展服务是否就绪
+print_info "等待扩展服务就绪..."
+sleep 5
+
+EXTENDED_NOT_READY=()
+for service_config in "${EXTENDED_SERVICES[@]}"; do
+    service=$(echo "$service_config" | cut -d: -f1)
+    port=$(echo "$service_config" | cut -d: -f3)
+
+    print_info "验证 $service 连接..."
+    max_retries=15
+    retries=0
+    while [ $retries -lt $max_retries ]; do
+        if check_port $port; then
+            print_success "$service 已就绪 (端口 $port)"
+            break
+        fi
+        retries=$((retries + 1))
+        if [ $retries -lt $max_retries ]; then
+            print_info "等待 $service 就绪... ($retries/$max_retries)"
+            sleep 2
+        fi
+    done
+
+    if [ $retries -eq $max_retries ]; then
+        print_warning "$service 在 $((max_retries * 2)) 秒内未就绪"
+        EXTENDED_NOT_READY+=("$service:$port")
+    fi
+done
+
 # 启动后台服务（不需要端口检查）
 print_info "启动后台服务..."
 for service_config in "${BACKGROUND_SERVICES[@]}"; do
@@ -556,27 +623,37 @@ if [ "$GATEWAY" = true ]; then
     echo ""
     print_info "启动 API 网关..."
     GATEWAY_PORT=8080
+
+    if [ ${#EXTENDED_NOT_READY[@]} -gt 0 ]; then
+        print_error "以下扩展服务未就绪，跳过启动 API 网关:"
+        for item in "${EXTENDED_NOT_READY[@]}"; do
+            service=$(echo "$item" | cut -d: -f1)
+            port=$(echo "$item" | cut -d: -f2)
+            echo "  - $service (端口: $port, 日志: logs/${service}.log)"
+        done
+    else
     
-    # 启动前再次检查并释放端口
-    if check_port $GATEWAY_PORT; then
-        print_warning "端口 $GATEWAY_PORT 被占用，正在释放..."
-        free_port $GATEWAY_PORT
-    fi
-    
-    GATEWAY_CONFIG="configs/dev/gateway.yaml"
-    if [ -f "$GATEWAY_CONFIG" ]; then
-        log_file="logs/api-gateway.log"
-        
-        if [ -f "bin/api-gateway" ]; then
-            ./bin/api-gateway -f "$GATEWAY_CONFIG" > "$log_file" 2>&1 &
-        else
-            go run cmd/api-gateway/main.go -f "$GATEWAY_CONFIG" > "$log_file" 2>&1 &
+        # 启动前再次检查并释放端口
+        if check_port $GATEWAY_PORT; then
+            print_warning "端口 $GATEWAY_PORT 被占用，正在释放..."
+            free_port $GATEWAY_PORT
         fi
         
-        PIDS+=($!)
-        print_success "API 网关已启动 (端口: 8080)"
-    else
-        print_warning "网关配置文件不存在: $GATEWAY_CONFIG"
+        GATEWAY_CONFIG="configs/dev/gateway.yaml"
+        if [ -f "$GATEWAY_CONFIG" ]; then
+            log_file="logs/api-gateway.log"
+            
+            if [ -f "bin/api-gateway" ]; then
+                ./bin/api-gateway -f "$GATEWAY_CONFIG" > "$log_file" 2>&1 &
+            else
+                go run cmd/api-gateway/main.go -f "$GATEWAY_CONFIG" > "$log_file" 2>&1 &
+            fi
+            
+            PIDS+=($!)
+            print_success "API 网关已启动 (端口: 8080)"
+        else
+            print_warning "网关配置文件不存在: $GATEWAY_CONFIG"
+        fi
     fi
 fi
 
@@ -699,7 +776,7 @@ while true; do
     dead_pids=()
     for i in "${!PIDS[@]}"; do
         pid=${PIDS[$i]}
-        if ! kill -0 "$pid" 2>/dev/null; then
+        if [ -n "$pid" ] && ! kill -0 "$pid" 2>/dev/null; then
             dead_pids+=("$i")
         fi
     done
@@ -726,6 +803,10 @@ while true; do
                 print_error "$service"
             done
         fi
+
+        for i in "${dead_pids[@]}"; do
+            unset 'PIDS[i]'
+        done
     fi
     
     sleep 5

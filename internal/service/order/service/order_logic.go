@@ -368,6 +368,7 @@ func (l *OrderLogic) GetOrder(ctx context.Context, req *GetOrderRequest) (*GetOr
 type ListOrdersRequest struct {
 	UserID   uint64
 	Status   int8
+	Keyword  string
 	Page     int
 	PageSize int
 }
@@ -393,7 +394,7 @@ func (l *OrderLogic) ListOrders(ctx context.Context, req *ListOrdersRequest) (*L
 		req.PageSize = 100
 	}
 
-	cacheKey := fmt.Sprintf("%s%d:%d:%d", cache.KeyPrefixOrderList, req.UserID, req.Status, req.Page)
+	cacheKey := fmt.Sprintf("%s%d:%d:%s:%d:%d", cache.KeyPrefixOrderList, req.UserID, req.Status, req.Keyword, req.Page, req.PageSize)
 	if l.cache != nil {
 		var cached ListOrdersResponse
 		if err := l.cache.GetJSON(ctx, cacheKey, &cached); err == nil {
@@ -404,6 +405,7 @@ func (l *OrderLogic) ListOrders(ctx context.Context, req *ListOrdersRequest) (*L
 	orders, total, err := l.orderRepo.List(ctx, &repository.ListOrdersRequest{
 		UserID:   req.UserID,
 		Status:   req.Status,
+		Keyword:  req.Keyword,
 		Page:     req.Page,
 		PageSize: req.PageSize,
 	})

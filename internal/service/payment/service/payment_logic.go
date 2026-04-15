@@ -104,6 +104,20 @@ func (l *PaymentLogic) CreatePayment(ctx context.Context, req *CreatePaymentRequ
 	// 实际项目中此处调用微信/支付宝 SDK 生成支付链接
 	payURL := "/payment/pay?payment_no=" + paymentNo
 
+	// Mock: 3 秒后自动触发支付成功回调（无真实支付渠道时使用）
+	go func() {
+		time.Sleep(3 * time.Second)
+		mockErr := l.PaymentCallback(context.Background(), &PaymentCallbackRequest{
+			PaymentNo:    paymentNo,
+			ThirdPartyNo: "mock_" + paymentNo,
+			Status:       1, // 支付成功
+			CallbackData: `{"mock":true}`,
+		})
+		if mockErr != nil {
+			logx.Errorf("mock 支付回调失败 payment_no=%s: %v", paymentNo, mockErr)
+		}
+	}()
+
 	return &CreatePaymentResponse{Payment: payment, PayURL: payURL}, nil
 }
 

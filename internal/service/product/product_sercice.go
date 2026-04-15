@@ -154,6 +154,7 @@ func (s *ProductService) ListSkus(ctx context.Context, req *v1.ListSkusRequest) 
 	listReq := &service.ListSkusRequest{
 		ProductID: uint64(req.ProductId),
 		Status:    status,
+		Keyword:   req.Keyword,
 		Page:      page,
 		PageSize:  pageSize,
 	}
@@ -301,6 +302,7 @@ func (s *ProductService) GetCategoryList(ctx context.Context, req *v1.GetCategor
 		ParentID: uint64(req.ParentId),
 		Level:    int8(req.Level),
 		Status:   int8(req.Status),
+		Keyword:  req.Keyword,
 	}
 
 	// 调用业务逻辑
@@ -758,8 +760,9 @@ func parseTime(timeStr string) (*time.Time, error) {
 func (s *ProductService) ListBanners(ctx context.Context, req *v1.ListBannersRequest) (*v1.ListBannersResponse, error) {
 	// 转换请求
 	listReq := &service.ListBannersRequest{
-		Status: int8(req.Status),
-		Limit:  int(req.Limit),
+		Status:  int8(req.Status),
+		Limit:   int(req.Limit),
+		Keyword: req.Keyword,
 	}
 
 	// 调用业务逻辑

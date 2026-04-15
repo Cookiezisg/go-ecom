@@ -47,6 +47,7 @@ message ListSeckillActivitiesRequest {
   int32 page_size = 2;
   int32 status = 3; // 状态：0-未开始，1-进行中，2-已结束
   bool include_disabled = 4; // 是否包含已禁用活动（管理后台用）
+  string keyword = 5; // 关键词（活动名/SKU名称）
 }
 
 // 获取秒杀活动列表响应

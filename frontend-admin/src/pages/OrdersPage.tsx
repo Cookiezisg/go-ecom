@@ -1,12 +1,16 @@
+import { useState } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { listOrders } from "@/api/admin";
+import { DataTableControls } from "@/components/DataTableControls";
 
 export function OrdersPage() {
+  const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const query = useQuery({
-    queryKey: ["admin-orders"],
-    queryFn: () => listOrders({ page: 1, page_size: 20, status: -1 }),
+    queryKey: ["admin-orders", page, pageSize, keyword],
+    queryFn: () => listOrders({ page, page_size: pageSize, status: -1, keyword }),
   });
-
   const orders = query.data?.data?.list ?? [];
 
   return (
@@ -17,6 +21,21 @@ export function OrdersPage() {
       </div>
       {query.isLoading ? <div>加载中...</div> : null}
       {query.isError ? <div className="error-box">{(query.error as Error).message}</div> : null}
+      <DataTableControls
+        onPageChange={setPage}
+        onPageSizeChange={(size) => {
+          setPageSize(size);
+          setPage(1);
+        }}
+        onSearchChange={(value) => {
+          setKeyword(value);
+        }}
+        page={page}
+        pageSize={pageSize}
+        searchPlaceholder="搜索订单号、收货人、用户 ID"
+        searchValue={keyword}
+        total={query.data?.data?.total ?? orders.length}
+      />
       <table className="table">
         <thead>
           <tr>

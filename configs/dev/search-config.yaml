@@ -69,6 +69,9 @@ Database:
   ConnMaxLifetime: 3600
   ConnMaxIdleTime: 600
 
+# ES 全量索引定时重建间隔（秒），0 表示禁用
+IndexRebuildIntervalSeconds: 3
+
 # Kafka 配置（消费 Outbox relay 投递的消息）
 Kafka:
   Brokers:

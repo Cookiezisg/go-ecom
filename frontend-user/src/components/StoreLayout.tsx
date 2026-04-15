@@ -4,7 +4,6 @@ import { useAuthStore } from "@/stores/auth";
 const navItems = [
   { to: "/", label: "首页" },
   { to: "/products", label: "商品" },
-  { to: "/search", label: "搜索" },
   { to: "/seckill", label: "秒杀" },
   { to: "/cart", label: "购物车" },
   { to: "/orders", label: "订单" },

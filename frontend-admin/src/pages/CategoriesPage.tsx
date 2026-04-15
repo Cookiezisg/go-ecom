@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { createCategory, deleteCategory, listCategoryTree, updateCategory } from "@/api/admin";
+import { createCategory, deleteCategory, listCategories, updateCategory } from "@/api/admin";
+import { DataTableControls } from "@/components/DataTableControls";
 
 type CategoryForm = {
   id?: number;
@@ -17,9 +18,12 @@ type CategoryForm = {
 export function CategoriesPage() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<CategoryForm | null>(null);
+  const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const query = useQuery({
-    queryKey: ["admin-categories"],
-    queryFn: () => listCategoryTree(1),
+    queryKey: ["admin-categories", keyword],
+    queryFn: () => listCategories({ status: 1, keyword }),
   });
   const saveMutation = useMutation({
     mutationFn: (payload: CategoryForm) => (payload.id ? updateCategory(payload.id, payload) : createCategory(payload)),
@@ -50,6 +54,7 @@ export function CategoriesPage() {
   }
 
   const list = query.data?.data ?? [];
+  const pagedList = list.slice((page - 1) * pageSize, page * pageSize);
 
   return (
     <section className="admin-grid two-panel">
@@ -60,8 +65,24 @@ export function CategoriesPage() {
             新建分类
           </button>
         </div>
+        <DataTableControls
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          onSearchChange={(value) => {
+            setKeyword(value);
+            setPage(1);
+          }}
+          page={page}
+          pageSize={pageSize}
+          searchPlaceholder="搜索分类名、描述、ID"
+          searchValue={keyword}
+          total={list.length}
+        />
         <div className="tree-list">
-          {list.map((item) => (
+          {pagedList.map((item) => (
             <div className="tree-item" key={String(item.id)}>
               <div className="tree-head">
                 <strong>{String(item.name)}</strong>
@@ -74,15 +95,7 @@ export function CategoriesPage() {
                   </button>
                 </div>
               </div>
-              {Array.isArray(item.children) && item.children.length > 0 ? (
-                <div className="tree-children">
-                  {item.children.map((child: Record<string, unknown>) => (
-                    <div className="tree-child" key={String(child.id)}>
-                      <span>{String(child.name)}</span>
-                    </div>
-                  ))}
-                </div>
-              ) : null}
+              <div className="muted">父分类 ID：{String(item.parent_id ?? 0)}</div>
             </div>
           ))}
         </div>

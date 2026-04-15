@@ -41,6 +41,7 @@ export function CartPage() {
       </div>
       {cartQuery.isLoading ? <div className="panel">正在加载购物车...</div> : null}
       {cartQuery.isError ? <div className="error-box">{(cartQuery.error as Error).message}</div> : null}
+      {removeMutation.isError ? <div className="error-box">{(removeMutation.error as Error).message}</div> : null}
       <div className="cart-list">
         {items.map((item) => (
           <div className="cart-row panel" key={item.id}>
@@ -55,6 +56,7 @@ export function CartPage() {
             <div className="quantity-box">
               <button
                 className="ghost-button"
+                disabled={updateMutation.isPending || removeMutation.isPending}
                 onClick={() =>
                   updateMutation.mutate({
                     user_id: profile.id,
@@ -69,6 +71,7 @@ export function CartPage() {
               <span>{item.quantity}</span>
               <button
                 className="ghost-button"
+                disabled={updateMutation.isPending || removeMutation.isPending}
                 onClick={() =>
                   updateMutation.mutate({
                     user_id: profile.id,
@@ -80,8 +83,13 @@ export function CartPage() {
               >
                 +
               </button>
-              <button className="ghost-button" onClick={() => removeMutation.mutate(item.sku_id)} type="button">
-                删除
+              <button
+                className="ghost-button"
+                disabled={updateMutation.isPending || removeMutation.isPending}
+                onClick={() => removeMutation.mutate(item.sku_id)}
+                type="button"
+              >
+                {removeMutation.isPending ? "删除中..." : "删除"}
               </button>
             </div>
           </div>

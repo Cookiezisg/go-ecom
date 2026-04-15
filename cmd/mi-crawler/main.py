@@ -156,12 +156,13 @@ class MiCrawler:
                 # 避免外键约束导致 TRUNCATE 失败
                 cursor.execute("SET FOREIGN_KEY_CHECKS=0")
                 # 注意顺序：先子表再父表
+                cursor.execute("TRUNCATE TABLE inventory")
                 cursor.execute("TRUNCATE TABLE sku")
                 cursor.execute("TRUNCATE TABLE product")
                 cursor.execute("TRUNCATE TABLE category")
                 cursor.execute("SET FOREIGN_KEY_CHECKS=1")
             self.db.commit()
-            print("  ✓ 已清空: sku / product / category")
+            print("  ✓ 已清空: inventory / sku / product / category")
 
         # 清理 Redis 缓存（非常关键：后端 GetCategoryTree 会缓存 24h，清库不清缓存会导致前端仍只看到旧的分类树）
         self.reset_redis_cache()
@@ -367,47 +368,24 @@ class MiCrawler:
                 parent_name = parent_name.strip()
                 
                 # 提取主分类图片
-                # 根据test.html结构，主分类本身没有图片，但实际页面可能通过JS动态加载
-                # 尝试从主分类项中查找图片
+                # 小米商城主分类没有 <img>，只有 CSS icon font，
+                # 使用第一个子分类的 data-src 作为主分类的代表图片
                 parent_image_url = ""
-                
-                # 方法1: 查找主分类项内的第一个有效图片（排除子分类的图片）
-                # 排除子分类区域的图片（div.children 内的图片）
-                main_category_imgs = parent_item.select('img')
-                for img in main_category_imgs:
-                    # 检查是否在子分类区域内
-                    parent_div = img.find_parent('div', class_='children')
-                    if parent_div:
-                        continue  # 跳过子分类的图片
-                    
-                    # 优先级：data-original > data-lazy-src > data-src > src
-                    img_url = (img.get('data-original') or 
-                              img.get('data-lazy-src') or 
-                              img.get('data-src') or 
-                              img.get('src') or "")
-                    
-                    if img_url:
-                        # 过滤占位图和箭头图标
-                        img_lower = img_url.lower()
-                        is_placeholder = any(kw in img_lower for kw in ['placeholder', 'default', 'empty', 'blank', 'arrow', 'iconfont'])
-                        
-                        if not is_placeholder:
-                            # 规范化URL
-                            if img_url.startswith('//'):
-                                img_url = 'https:' + img_url
-                            elif img_url.startswith('/'):
-                                img_url = 'https://www.mi.com' + img_url
-                            elif not img_url.startswith('http'):
-                                img_url = urljoin('https://www.mi.com', img_url)
-                            
-                            # 移除URL参数
-                            img_url = re.sub(r'[?&](thumb|w|h|f|q)=\d+', '', img_url)
-                            img_url = img_url.rstrip('?&')
-                            
-                            # 只保留有效的CDN图片
-                            if any(cdn in img_url for cdn in ['b2c-shopapi-pms', 'cdn.cnbj', 'mi-mall', 'nr-pub', 'mi-img.com', 'pms_']):
-                                parent_image_url = img_url
-                                break
+                first_child_img = parent_item.select_one('div.children li img.thumb')
+                if first_child_img:
+                    img_url = (first_child_img.get('data-src') or
+                               first_child_img.get('data-original') or
+                               first_child_img.get('data-lazy-src') or
+                               first_child_img.get('src') or '')
+                    if img_url and 'placeholder' not in img_url.lower():
+                        if img_url.startswith('//'):
+                            img_url = 'https:' + img_url
+                        elif img_url.startswith('/'):
+                            img_url = 'https://www.mi.com' + img_url
+                        elif not img_url.startswith('http'):
+                            img_url = urljoin('https://www.mi.com', img_url)
+                        if any(cdn in img_url for cdn in ['b2c-shopapi-pms', 'cdn.cnbj', 'mi-mall', 'nr-pub', 'mi-img.com']):
+                            parent_image_url = img_url
                 
                 print(f"\n========== [{sort_order + 1}] 处理主分类: {parent_name} ==========")
                 if parent_image_url:
@@ -670,12 +648,19 @@ class MiCrawler:
             if h2:
                 product['name'] = h2.get_text(" ", strip=True)
 
-            # 仅在没有 h2 时再用 title 兜底（避免把“立即购买-小米商城”等拼进 name）
+            # 仅在没有 h2 时再用 title 兜底（避免把”立即购买-小米商城”等拼进 name）
             if not product['name']:
                 title_tag = soup.find('title')
                 if title_tag:
                     title = title_tag.get_text(strip=True)
-                    product['name'] = title.split(' - ')[0] if ' - ' in title else title
+                    # 优先按” - “切分（英文 dash 加空格）
+                    if ' - ' in title:
+                        title = title.split(' - ')[0]
+                    # 再清理常见的中文后缀（”立即购买-小米商城”、”小米商城”、”官网”等）
+                    for suffix in ['立即购买', '-小米商城', ' - 小米商城', '小米商城', '官网']:
+                        if suffix in title:
+                            title = title[:title.index(suffix)]
+                    product['name'] = title.strip()
             
             if not product['name']:
                 h1 = soup.find('h1')
@@ -810,6 +795,8 @@ class MiCrawler:
                                 total += 1
 
                         print(f"      ✓ SKU入库完成：{total} 条（版本={len(versions)} 颜色={len(colors)}）")
+                        # 聚合 SKU 库存写回 product.stock
+                        self.update_product_stock(int(product_id))
                     except Exception as e:
                         print(f"      ⚠️  SKU提取/入库失败: {e}")
             else:
@@ -913,27 +900,32 @@ class MiCrawler:
             if cursor.fetchone():
                 spu_code = f"{spu_code}_{int(time.time())}"
             
+            price_val = float(product['price']) if product.get('price') else 0.0
+            description = product.get('description', '') or ''
+            subtitle = description[:200]  # VARCHAR(200) 截断
+
             # 插入商品
             cursor.execute(
-                """INSERT INTO product 
-                   (spu_code, name, subtitle, category_id, main_image, local_main_image,
+                """INSERT INTO product
+                   (spu_code, name, subtitle, detail, category_id, main_image, local_main_image,
                     images, local_images, price, original_price, source_url, brand_name,
                     crawled_at, status)
-                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)""",
+                   VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, NOW(), %s)""",
                 (
                     spu_code,
                     product['name'],
-                    product.get('description', ''),
+                    subtitle,           # subtitle：副标题/卖点文案，截断至 200 字符
+                    description,        # detail：完整文案，TEXT 类型不限长
                     product['category_id'],
                     main_image_url,
                     local_main_image,
                     json.dumps(product['images'], ensure_ascii=False),
                     json.dumps(local_images, ensure_ascii=False),
-                    float(product['price']) if product['price'] else 0,
-                    0,
+                    price_val,
+                    price_val,          # original_price 与 price 保持一致
                     product['url'],
                     product.get('brand', '小米'),
-                    2  # 待审核
+                    1  # 直接上架
                 )
             )
             self.db.commit()
@@ -1025,6 +1017,7 @@ class MiCrawler:
                    price: float, stock: int, image: str, status: int = 1):
         """
         写入 SKU（可重复运行）：ON DUPLICATE KEY UPDATE + 恢复 deleted_at
+        同时同步写入 inventory 表初始库存。
         """
         specs_json = json.dumps(specs or {}, ensure_ascii=False)
         with self.db.cursor() as cursor:
@@ -1044,6 +1037,41 @@ class MiCrawler:
                      updated_at = NOW()
                 """,
                 (product_id, sku_code, name, specs_json, float(price), int(stock), image, int(status))
+            )
+            sku_id = cursor.lastrowid
+            # lastrowid 在 ON DUPLICATE KEY UPDATE 时为 0，需重新查
+            if not sku_id:
+                cursor.execute("SELECT id FROM sku WHERE sku_code = %s", (sku_code,))
+                row = cursor.fetchone()
+                sku_id = row["id"] if row else None
+
+            # 同步写入 inventory 表（初始库存）
+            if sku_id:
+                cursor.execute(
+                    """INSERT INTO inventory
+                       (sku_id, total_stock, available_stock, locked_stock, sold_stock, low_stock_threshold, created_at, updated_at)
+                       VALUES (%s, %s, %s, 0, 0, 10, NOW(), NOW())
+                       ON DUPLICATE KEY UPDATE
+                         total_stock = VALUES(total_stock),
+                         available_stock = VALUES(available_stock),
+                         updated_at = NOW()
+                    """,
+                    (sku_id, int(stock), int(stock))
+                )
+        self.db.commit()
+
+    def update_product_stock(self, product_id: int):
+        """将商品所有有效 SKU 的库存聚合后写回 product.stock"""
+        with self.db.cursor() as cursor:
+            cursor.execute(
+                "SELECT COALESCE(SUM(stock), 0) AS total FROM sku WHERE product_id = %s AND deleted_at IS NULL",
+                (product_id,)
+            )
+            row = cursor.fetchone()
+            total_stock = int((row or {}).get("total") or 0)
+            cursor.execute(
+                "UPDATE product SET stock = %s WHERE id = %s",
+                (total_stock, product_id)
             )
         self.db.commit()
 
@@ -1118,6 +1146,7 @@ class MiCrawler:
                         total += 1
 
                 print(f"  ✓ 写入/更新 SKU 数量: {total}（版本={len(versions)} 颜色={len(colors)}）")
+                self.update_product_stock(pid)
             except Exception as e:
                 print(f"  ⚠️  爬取 SKU 失败: {e}")
                 import traceback

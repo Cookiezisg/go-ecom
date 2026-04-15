@@ -24,6 +24,7 @@ type OrderRepository interface {
 type ListOrdersRequest struct {
 	UserID   uint64
 	Status   int8 // -1表示全部
+	Keyword  string
 	Page     int
 	PageSize int
 }
@@ -81,7 +82,17 @@ func (r *orderRepository) List(ctx context.Context, req *ListOrdersRequest) ([]*
 	var orders []*model.Order
 	var total int64
 
-	query := r.db.WithContext(ctx).Model(&model.Order{}).Where("user_id = ?", req.UserID)
+	query := r.db.WithContext(ctx).Model(&model.Order{})
+
+	// user_id 仅在用户侧查询时使用；后台未传时应返回全部订单。
+	if req.UserID > 0 {
+		query = query.Where("user_id = ?", req.UserID)
+	}
+
+	if req.Keyword != "" {
+		like := "%" + req.Keyword + "%"
+		query = query.Where("order_no LIKE ? OR receiver_name LIKE ?", like, like)
+	}
 
 	// 状态过滤：-1表示全部，>=0表示指定状态
 	if req.Status >= 0 {

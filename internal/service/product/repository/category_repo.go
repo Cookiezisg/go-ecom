@@ -13,7 +13,7 @@ type CategoryRepository interface {
 	Create(ctx context.Context, category *model.Category) error
 	GetByID(ctx context.Context, id uint64) (*model.Category, error)
 	GetByParentID(ctx context.Context, parentID uint64) ([]*model.Category, error)
-	GetAll(ctx context.Context, status int8) ([]*model.Category, error)
+	GetAll(ctx context.Context, status int8, keyword string) ([]*model.Category, error)
 	Update(ctx context.Context, category *model.Category) error
 	Delete(ctx context.Context, id uint64) error
 }
@@ -57,11 +57,15 @@ func (r *categoryRepository) GetByParentID(ctx context.Context, parentID uint64)
 }
 
 // GetAll 获取所有类目
-func (r *categoryRepository) GetAll(ctx context.Context, status int8) ([]*model.Category, error) {
+func (r *categoryRepository) GetAll(ctx context.Context, status int8, keyword string) ([]*model.Category, error) {
 	var categories []*model.Category
 	query := r.db.WithContext(ctx)
 	if status >= 0 {
 		query = query.Where("status = ?", status)
+	}
+	if keyword != "" {
+		like := "%" + keyword + "%"
+		query = query.Where("name LIKE ? OR description LIKE ?", like, like)
 	}
 	err := query.Order("level ASC, sort DESC, id ASC").Find(&categories).Error
 	if err != nil {

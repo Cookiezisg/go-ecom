@@ -150,6 +150,7 @@ func (s *SeckillService) ListSeckillActivities(ctx context.Context, req *v1.List
 		Page:            page,
 		PageSize:        pageSize,
 		Status:          req.Status,
+		Keyword:         req.Keyword,
 		Now:             now,
 		IncludeDisabled: req.IncludeDisabled,
 	})

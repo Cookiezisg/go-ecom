@@ -26,6 +26,15 @@
           "application/json"
         ],
         "operationId": "GetCart",
+        "parameters": [
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -93,6 +102,15 @@
           "application/json"
         ],
         "operationId": "ClearCart",
+        "parameters": [
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -208,6 +226,19 @@
             "in": "path",
             "name": "sku_ids",
             "required": true,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "sku_ids",
+            "required": false,
+            "type": "array"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
             "type": "string"
           }
         ],

@@ -113,6 +113,12 @@
             "name": "payment_no",
             "required": true,
             "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "payment_no",
+            "required": false,
+            "type": "string"
           }
         ],
         "produces": [
@@ -190,6 +196,12 @@
             "in": "path",
             "name": "payment_no",
             "required": true,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "payment_no",
+            "required": false,
             "type": "string"
           }
         ],

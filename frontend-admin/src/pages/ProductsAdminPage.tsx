@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createProduct, deleteProduct, listProducts, updateProduct } from "@/api/admin";
+import { DataTableControls } from "@/components/DataTableControls";
 import { uploadImage } from "@/api/upload";
 
 type ProductForm = {
@@ -55,9 +56,12 @@ function toProductForm(input: Record<string, unknown>): ProductForm {
 export function ProductsAdminPage() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<ProductForm | null>(null);
+  const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const query = useQuery({
-    queryKey: ["admin-products"],
-    queryFn: () => listProducts({ page: 1, page_size: 20, status: 1 }),
+    queryKey: ["admin-products", page, pageSize, keyword],
+    queryFn: () => listProducts({ page, page_size: pageSize, status: 1, keyword }),
   });
 
   const saveMutation = useMutation({
@@ -107,6 +111,22 @@ export function ProductsAdminPage() {
             新建商品
           </button>
         </div>
+        <DataTableControls
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          onSearchChange={(value) => {
+            setKeyword(value);
+            setPage(1);
+          }}
+          page={page}
+          pageSize={pageSize}
+          searchPlaceholder="搜索商品名、副标题、分类 ID"
+          searchValue={keyword}
+          total={query.data?.data?.total ?? products.length}
+        />
         <table className="table">
           <thead>
             <tr>
@@ -119,7 +139,7 @@ export function ProductsAdminPage() {
               <th>操作</th>
             </tr>
           </thead>
-          <tbody>
+        <tbody>
             {products.map((product) => (
               <tr key={product.id}>
                 <td>{product.id}</td>

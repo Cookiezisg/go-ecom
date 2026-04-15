@@ -1,8 +1,7 @@
-import { Route, Routes } from "react-router-dom";
+import { Navigate, Route, Routes } from "react-router-dom";
 import { StoreLayout } from "@/components/StoreLayout";
 import { HomePage } from "@/pages/HomePage";
 import { LoginPage } from "@/pages/LoginPage";
-import { ProductsPage } from "@/pages/ProductsPage";
 import { ProductDetailPage } from "@/pages/ProductDetailPage";
 import { CartPage } from "@/pages/CartPage";
 import { SearchPage } from "@/pages/SearchPage";
@@ -22,9 +21,9 @@ export function App() {
       <Route element={<StoreLayout />}>
         <Route path="/" element={<HomePage />} />
         <Route path="/login" element={<LoginPage />} />
-        <Route path="/products" element={<ProductsPage />} />
+        <Route path="/products" element={<SearchPage />} />
         <Route path="/products/:id" element={<ProductDetailPage />} />
-        <Route path="/search" element={<SearchPage />} />
+        <Route path="/search" element={<Navigate replace to="/products" />} />
         <Route path="/seckill" element={<SeckillPage />} />
         <Route path="/seckill/:id" element={<SeckillDetailPage />} />
         <Route path="/cart" element={<CartPage />} />

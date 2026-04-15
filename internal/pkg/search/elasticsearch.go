@@ -160,6 +160,73 @@ func (c *Client) Search(ctx context.Context, indexName string, query map[string]
 	return documents, int64(totalValue), nil
 }
 
+// ListAllDocumentIDs 返回索引中所有文档的 ID 列表（用于和 MySQL 做 diff）
+func (c *Client) ListAllDocumentIDs(ctx context.Context, indexName string) ([]string, error) {
+	query := map[string]interface{}{
+		"_source": false,
+		"size":    10000,
+		"query":   map[string]interface{}{"match_all": map[string]interface{}{}},
+	}
+	body, _ := json.Marshal(query)
+
+	res, err := c.es.Search(
+		c.es.Search.WithContext(ctx),
+		c.es.Search.WithIndex(indexName),
+		c.es.Search.WithBody(strings.NewReader(string(body))),
+		c.es.Search.WithTrackTotalHits(true),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("查询 ES 文档 ID 失败: %w", err)
+	}
+	defer res.Body.Close()
+
+	// 索引不存在时返回空列表，不报错
+	if res.StatusCode == 404 {
+		return []string{}, nil
+	}
+	if res.IsError() {
+		return nil, fmt.Errorf("查询 ES 文档 ID 失败: %s", res.String())
+	}
+
+	var result map[string]interface{}
+	if err := json.NewDecoder(res.Body).Decode(&result); err != nil {
+		return nil, fmt.Errorf("解析 ES 响应失败: %w", err)
+	}
+
+	hits, _ := result["hits"].(map[string]interface{})
+	hitsArray, _ := hits["hits"].([]interface{})
+
+	ids := make([]string, 0, len(hitsArray))
+	for _, h := range hitsArray {
+		hit, ok := h.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		if id, ok := hit["_id"].(string); ok {
+			ids = append(ids, id)
+		}
+	}
+	return ids, nil
+}
+
+// DeleteIndex 删除索引（全量重建前调用）
+func (c *Client) DeleteIndex(ctx context.Context, indexName string) error {
+	res, err := c.es.Indices.Delete([]string{indexName},
+		c.es.Indices.Delete.WithIgnoreUnavailable(true),
+	)
+	if err != nil {
+		return fmt.Errorf("删除索引失败: %w", err)
+	}
+	defer res.Body.Close()
+
+	if res.IsError() {
+		return fmt.Errorf("删除索引失败: %s", res.String())
+	}
+
+	logx.Infof("索引 %s 已删除", indexName)
+	return nil
+}
+
 // DeleteDocument 删除文档
 func (c *Client) DeleteDocument(ctx context.Context, indexName string, docID string) error {
 	res, err := c.es.Delete(indexName, docID)

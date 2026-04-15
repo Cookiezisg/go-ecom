@@ -40,7 +40,11 @@ export function ProfilePage() {
 
   useEffect(() => {
     if (infoQuery.data?.data && profile) {
-      setAuth(token, { ...profile, ...infoQuery.data.data });
+      const nextProfile = { ...profile, ...infoQuery.data.data };
+      const hasChanged = JSON.stringify(profile) !== JSON.stringify(nextProfile);
+      if (hasChanged) {
+        setAuth(token, nextProfile);
+      }
     }
   }, [infoQuery.data, profile, setAuth, token]);
 

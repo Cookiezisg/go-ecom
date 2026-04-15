@@ -96,6 +96,7 @@ func (s *OrderService) ListOrders(ctx context.Context, req *v1.ListOrdersRequest
 	listReq := &service.ListOrdersRequest{
 		UserID:   uint64(req.UserId),
 		Status:   int8(req.Status),
+		Keyword:  req.Keyword,
 		Page:     int(req.Page),
 		PageSize: int(req.PageSize),
 	}

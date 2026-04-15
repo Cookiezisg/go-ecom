@@ -3,6 +3,7 @@ package search
 import (
 	"context"
 	"log"
+	"time"
 
 	"ecommerce-system/internal/pkg/cache"
 	"ecommerce-system/internal/pkg/database"
@@ -72,7 +73,7 @@ func NewServiceContext(c Config) *ServiceContext {
 		}
 	}
 
-	ctx.SearchRepo = repository.NewSearchRepository(rdb, ctx.ESClient)
+	ctx.SearchRepo = repository.NewSearchRepository(rdb, ctx.ESClient, ctx.SnapshotRepo)
 
 	// Kafka 消费者可选（用于监听商品数据变更事件，同步到 ES）
 	if len(c.Kafka.Brokers) > 0 && c.Kafka.ConsumerGroup != "" {
@@ -92,6 +93,27 @@ func NewServiceContext(c Config) *ServiceContext {
 				_ = ctx.MQConsumer.Start(context.Background(), []string{mq.TopicDataSync})
 			}()
 		}
+	}
+
+	// 定时全量重建 ES 索引
+	if c.IndexRebuildIntervalSeconds > 0 && ctx.ESClient != nil {
+		go func() {
+			// 启动时立即执行一次全量索引
+			if err := ctx.SearchRepo.BuildProductIndex(context.Background(), nil); err != nil {
+				log.Printf("警告：全量索引初始化失败: %v", err)
+			} else {
+				log.Printf("全量索引初始化完成")
+			}
+			ticker := time.NewTicker(time.Duration(c.IndexRebuildIntervalSeconds) * time.Second)
+			defer ticker.Stop()
+			for range ticker.C {
+				if err := ctx.SearchRepo.BuildProductIndex(context.Background(), nil); err != nil {
+					log.Printf("警告：定时全量索引重建失败: %v", err)
+				} else {
+					log.Printf("定时全量索引重建完成")
+				}
+			}
+		}()
 	}
 
 	return ctx

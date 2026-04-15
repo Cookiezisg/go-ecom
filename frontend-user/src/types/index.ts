@@ -38,6 +38,27 @@ export interface Product {
   is_hot?: number;
 }
 
+export interface Sku {
+  id: number;
+  product_id: number;
+  sku_code: string;
+  name: string;
+  specs?: Record<string, string>;
+  price: number;
+  original_price?: number;
+  stock: number;
+  image?: string;
+  status: number;
+}
+
+export interface SkuListData {
+  list: Sku[];
+  page: number;
+  page_size: number;
+  total: number;
+  total_pages: number;
+}
+
 export interface ProductListData {
   list: Product[];
   page: number;

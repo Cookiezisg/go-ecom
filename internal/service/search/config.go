@@ -7,10 +7,11 @@ import (
 // Config 搜索服务配置
 type Config struct {
 	zrpc.RpcServerConf
-	Elasticsearch ElasticsearchConfig
-	BizRedis      RedisConfig // 业务侧使用的 Redis 配置，避免与 zrpc.RpcServerConf 内置的 Redis 字段冲突
-	Database      DatabaseConfig
-	Kafka         KafkaConfig
+	Elasticsearch              ElasticsearchConfig
+	BizRedis                   RedisConfig // 业务侧使用的 Redis 配置，避免与 zrpc.RpcServerConf 内置的 Redis 字段冲突
+	Database                   DatabaseConfig
+	Kafka                      KafkaConfig
+	IndexRebuildIntervalSeconds int // ES 全量索引重建间隔（秒），0 表示禁用
 }
 
 // ElasticsearchConfig Elasticsearch配置
@@ -51,3 +52,6 @@ type KafkaConfig struct {
 	Version       string
 	ConsumerGroup string
 }
+
+// IndexRebuildIntervalSeconds ES 全量索引重建间隔（秒），0 表示禁用定时任务
+// 独立字段放在 Config 顶层，非嵌套，方便 yaml 配置

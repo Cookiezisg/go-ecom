@@ -14,6 +14,7 @@ type ListSeckillActivitiesRequest struct {
 	PageSize int
 	// Status: 0-未开始，1-进行中，2-已结束；负数表示不过滤
 	Status int32
+	Keyword string
 	Now    int64
 	// IncludeDisabled: 是否包含禁用活动（a.status=0）
 	IncludeDisabled bool
@@ -108,6 +109,10 @@ func (r *seckillActivityRepository) List(ctx context.Context, req *ListSeckillAc
 	query := r.baseQuery(ctx)
 	if !req.IncludeDisabled {
 		query = query.Where("a.status = 1")
+	}
+	if req.Keyword != "" {
+		like := "%" + req.Keyword + "%"
+		query = query.Where("a.name LIKE ? OR s.name LIKE ?", like, like)
 	}
 
 	// 按“对外状态”过滤（由时间决定）

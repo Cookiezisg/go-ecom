@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"os"
 	"time"
 
 	"github.com/zeromicro/go-zero/core/conf"
@@ -232,8 +233,14 @@ func main() {
 	log.Printf("✅ 静态文件服务已注册: /uploads/ -> uploads/ (已启用 CORS)")
 
 	// 静态文件服务：提供爬虫下载的图片文件访问
-	// 文件保存在 images/ 目录下，通过 /images/ 路径访问
-	imagesFS := http.FileServer(http.Dir("images"))
+	// 兼容两种目录：
+	// 1. 项目根目录 images/
+	// 2. 爬虫目录 cmd/mi-crawler/images/
+	imagesDir := "images"
+	if _, err := os.Stat(imagesDir); os.IsNotExist(err) {
+		imagesDir = "cmd/mi-crawler/images"
+	}
+	imagesFS := http.FileServer(http.Dir(imagesDir))
 	mainMux.HandleFunc("/images/", func(w http.ResponseWriter, r *http.Request) {
 		// 设置 CORS 头
 		origin := r.Header.Get("Origin")
@@ -256,7 +263,7 @@ func main() {
 		// 提供静态文件
 		http.StripPrefix("/images/", imagesFS).ServeHTTP(w, r)
 	})
-	log.Printf("✅ 静态文件服务已注册: /images/ -> images/ (已启用 CORS)")
+	log.Printf("✅ 静态文件服务已注册: /images/ -> %s (已启用 CORS)", imagesDir)
 
 	// 文件上传路由（直接处理，不经过 Gateway）
 	if fileUploadHandler != nil {

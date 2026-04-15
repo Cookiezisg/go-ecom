@@ -12,7 +12,7 @@ import (
 type BannerRepository interface {
 	Create(ctx context.Context, banner *model.Banner) error
 	GetByID(ctx context.Context, id uint64) (*model.Banner, error)
-	GetAll(ctx context.Context, status int8, limit int) ([]*model.Banner, error)
+	GetAll(ctx context.Context, status int8, limit int, keyword string) ([]*model.Banner, error)
 	Update(ctx context.Context, banner *model.Banner) error
 	Delete(ctx context.Context, id uint64) error
 }
@@ -43,12 +43,16 @@ func (r *bannerRepository) GetByID(ctx context.Context, id uint64) (*model.Banne
 }
 
 // GetAll 获取所有Banner
-func (r *bannerRepository) GetAll(ctx context.Context, status int8, limit int) ([]*model.Banner, error) {
+func (r *bannerRepository) GetAll(ctx context.Context, status int8, limit int, keyword string) ([]*model.Banner, error) {
 	var banners []*model.Banner
 	query := r.db.WithContext(ctx)
 
 	if status >= 0 {
 		query = query.Where("status = ?", status)
+	}
+	if keyword != "" {
+		like := "%" + keyword + "%"
+		query = query.Where("title LIKE ? OR description LIKE ? OR link LIKE ?", like, like, like)
 	}
 
 	// 按排序值降序，ID升序

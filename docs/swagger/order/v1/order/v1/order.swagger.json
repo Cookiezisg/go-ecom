@@ -26,6 +26,44 @@
           "application/json"
         ],
         "operationId": "ListOrders",
+        "parameters": [
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "description": "订单状态，-1表示全部",
+            "format": "int32",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "description": "关键词（订单号/收货人）",
+            "in": "query",
+            "name": "keyword",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -99,6 +137,19 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "type": "string"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "id",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "in": "query",
+            "name": "order_no",
+            "required": false,
             "type": "string"
           }
         ],
@@ -486,6 +537,10 @@
     },
     "v1ListOrdersRequest": {
       "properties": {
+        "keyword": {
+          "description": "关键词（订单号/收货人）",
+          "type": "string"
+        },
         "page": {
           "format": "int32",
           "type": "integer"

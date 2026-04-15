@@ -164,6 +164,7 @@ message ListSkusRequest {
   int32 status = 2; // 状态: -1-全部, 0-下架, 1-上架
   int32 page = 3;
   int32 page_size = 4;
+  string keyword = 5; // 关键词（SKU编码/名称）
 }
 
 // 获取SKU列表响应
@@ -241,6 +242,7 @@ message GetCategoryListRequest {
   int64 parent_id = 1;
   int32 level = 2;
   int32 status = 3;
+  string keyword = 4; // 关键词（分类名/描述）
 }
 
 // 获取类目列表响应
@@ -411,6 +413,7 @@ message Banner {
 message ListBannersRequest {
   int32 status = 1; // -1-全部, 0-禁用, 1-启用
   int32 limit = 2; // 限制数量，0表示不限制
+  string keyword = 3; // 关键词（标题/描述/链接）
 }
 
 // 获取Banner列表响应

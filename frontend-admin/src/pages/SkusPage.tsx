@@ -1,6 +1,7 @@
 import { FormEvent, useState } from "react";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { createSku, deleteSku, listSkus, updateSku } from "@/api/admin";
+import { DataTableControls } from "@/components/DataTableControls";
 
 type SkuForm = {
   id?: number;
@@ -17,9 +18,12 @@ type SkuForm = {
 export function SkusPage() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<SkuForm | null>(null);
+  const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const query = useQuery({
-    queryKey: ["admin-skus"],
-    queryFn: () => listSkus({ page: 1, page_size: 20, status: -1, product_id: 0 }),
+    queryKey: ["admin-skus", page, pageSize, keyword],
+    queryFn: () => listSkus({ page, page_size: pageSize, status: -1, product_id: 0, keyword }),
   });
   const saveMutation = useMutation({
     mutationFn: (payload: SkuForm) =>
@@ -63,6 +67,22 @@ export function SkusPage() {
             新建 SKU
           </button>
         </div>
+        <DataTableControls
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          onSearchChange={(value) => {
+            setKeyword(value);
+            setPage(1);
+          }}
+          page={page}
+          pageSize={pageSize}
+          searchPlaceholder="搜索商品 ID、SKU 编码、SKU 名称"
+          searchValue={keyword}
+          total={query.data?.data?.total ?? list.length}
+        />
         <table className="table">
           <thead>
             <tr>

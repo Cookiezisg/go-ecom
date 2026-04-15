@@ -26,6 +26,22 @@
           "application/json"
         ],
         "operationId": "GetHotProducts",
+        "parameters": [
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "category_id",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -62,6 +78,20 @@
             "name": "user_id",
             "required": true,
             "type": "string"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "type": "integer"
           }
         ],
         "produces": [
@@ -100,6 +130,20 @@
             "name": "user_id",
             "required": true,
             "type": "string"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "type": "integer"
           }
         ],
         "produces": [
@@ -138,6 +182,20 @@
             "name": "product_id",
             "required": true,
             "type": "string"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "product_id",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "type": "integer"
           }
         ],
         "produces": [

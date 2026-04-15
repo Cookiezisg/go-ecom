@@ -6,6 +6,7 @@ import {
   listSeckillActivities,
   updateSeckillActivity,
 } from "@/api/admin";
+import { DataTableControls } from "@/components/DataTableControls";
 
 type SeckillForm = {
   id?: number;
@@ -21,9 +22,12 @@ type SeckillForm = {
 export function SeckillPage() {
   const queryClient = useQueryClient();
   const [editing, setEditing] = useState<SeckillForm | null>(null);
+  const [keyword, setKeyword] = useState("");
+  const [page, setPage] = useState(1);
+  const [pageSize, setPageSize] = useState(10);
   const query = useQuery({
-    queryKey: ["admin-seckill"],
-    queryFn: () => listSeckillActivities({ page: 1, page_size: 20, include_disabled: true }),
+    queryKey: ["admin-seckill", page, pageSize, keyword],
+    queryFn: () => listSeckillActivities({ page, page_size: pageSize, include_disabled: true, keyword }),
   });
   const saveMutation = useMutation({
     mutationFn: (payload: SeckillForm) =>
@@ -64,6 +68,22 @@ export function SeckillPage() {
             新建活动
           </button>
         </div>
+        <DataTableControls
+          onPageChange={setPage}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPage(1);
+          }}
+          onSearchChange={(value) => {
+            setKeyword(value);
+            setPage(1);
+          }}
+          page={page}
+          pageSize={pageSize}
+          searchPlaceholder="搜索活动名、SKU 名称、SKU ID"
+          searchValue={keyword}
+          total={query.data?.data?.total ?? activities.length}
+        />
         <table className="table">
           <thead>
             <tr>

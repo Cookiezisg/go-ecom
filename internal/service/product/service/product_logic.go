@@ -431,6 +431,7 @@ func (l *ProductLogic) GetSku(ctx context.Context, req *GetSkuRequest) (*GetSkuR
 type ListSkusRequest struct {
 	ProductID uint64
 	Status    int8 // -1-全部, 0-下架, 1-上架
+	Keyword   string
 	Page      int
 	PageSize  int
 }
@@ -463,6 +464,7 @@ func (l *ProductLogic) ListSkus(ctx context.Context, req *ListSkusRequest) (*Lis
 	listReq := &repository.ListSkusRequest{
 		ProductID: req.ProductID,
 		Status:    req.Status,
+		Keyword:   req.Keyword,
 		Page:      page,
 		PageSize:  pageSize,
 	}
@@ -1142,6 +1144,7 @@ type GetCategoryListRequest struct {
 	ParentID uint64
 	Level    int8
 	Status   int8
+	Keyword  string
 }
 
 // GetCategoryListResponse 获取类目列表响应
@@ -1164,7 +1167,7 @@ func (l *ProductLogic) GetCategoryList(ctx context.Context, req *GetCategoryList
 		categories, err = l.categoryRepo.GetByParentID(ctx, req.ParentID)
 	} else {
 		// 查询所有类目
-		categories, err = l.categoryRepo.GetAll(ctx, req.Status)
+		categories, err = l.categoryRepo.GetAll(ctx, req.Status, req.Keyword)
 	}
 
 	if err != nil {
@@ -1211,7 +1214,7 @@ func (l *ProductLogic) GetCategoryTree(ctx context.Context, req *GetCategoryTree
 	}
 
 	// 获取所有类目
-	allCategories, err := l.categoryRepo.GetAll(ctx, req.Status)
+	allCategories, err := l.categoryRepo.GetAll(ctx, req.Status, "")
 	if err != nil {
 		return nil, apperrors.NewInternalError("查询类目失败: " + err.Error())
 	}
@@ -2096,6 +2099,7 @@ func (l *ProductLogic) DeleteCategory(ctx context.Context, req *DeleteCategoryRe
 type ListBannersRequest struct {
 	Status int8
 	Limit  int
+	Keyword string
 }
 
 // ListBannersResponse 获取Banner列表响应
@@ -2109,7 +2113,7 @@ func (l *ProductLogic) ListBanners(ctx context.Context, req *ListBannersRequest)
 		return nil, apperrors.NewInternalError("数据库连接未初始化")
 	}
 
-	banners, err := l.bannerRepo.GetAll(ctx, req.Status, req.Limit)
+	banners, err := l.bannerRepo.GetAll(ctx, req.Status, req.Limit, req.Keyword)
 	if err != nil {
 		return nil, apperrors.NewInternalError("查询Banner列表失败: " + err.Error())
 	}

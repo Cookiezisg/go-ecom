@@ -26,6 +26,15 @@
           "application/json"
         ],
         "operationId": "GetHotKeywords",
+        "parameters": [
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "type": "integer"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -95,6 +104,42 @@
           "application/json"
         ],
         "operationId": "SearchProducts",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "keyword",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "category_id",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "description": "price_asc, price_desc, sales_desc, score_desc",
+            "in": "query",
+            "name": "sort_by",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -124,6 +169,21 @@
           "application/json"
         ],
         "operationId": "GetSearchSuggestions",
+        "parameters": [
+          {
+            "in": "query",
+            "name": "keyword",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "format": "int32",
+            "in": "query",
+            "name": "limit",
+            "required": false,
+            "type": "integer"
+          }
+        ],
         "produces": [
           "application/json"
         ],

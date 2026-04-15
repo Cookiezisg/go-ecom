@@ -26,6 +26,15 @@
           "application/json"
         ],
         "operationId": "GetAddressList",
+        "parameters": [
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -100,6 +109,20 @@
             "name": "id",
             "required": true,
             "type": "string"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "id",
+            "required": false,
+            "type": "string"
+          },
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "type": "string"
           }
         ],
         "produces": [
@@ -169,6 +192,15 @@
           "application/json"
         ],
         "operationId": "GetUserInfo",
+        "parameters": [
+          {
+            "format": "int64",
+            "in": "query",
+            "name": "user_id",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -316,6 +348,39 @@
           "application/json"
         ],
         "operationId": "ListUsers",
+        "parameters": [
+          {
+            "description": "状态筛选（0-全部，1-正常，2-禁用）",
+            "format": "int32",
+            "in": "query",
+            "name": "status",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "description": "页码，从1开始",
+            "format": "int32",
+            "in": "query",
+            "name": "page",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "description": "每页数量",
+            "format": "int32",
+            "in": "query",
+            "name": "page_size",
+            "required": false,
+            "type": "integer"
+          },
+          {
+            "description": "搜索关键词（用户名/手机号/邮箱）",
+            "in": "query",
+            "name": "keyword",
+            "required": false,
+            "type": "string"
+          }
+        ],
         "produces": [
           "application/json"
         ],
@@ -351,6 +416,14 @@
             "in": "path",
             "name": "id",
             "required": true,
+            "type": "string"
+          },
+          {
+            "description": "路径参数 :id 会映射到这里",
+            "format": "int64",
+            "in": "query",
+            "name": "id",
+            "required": false,
             "type": "string"
           }
         ],

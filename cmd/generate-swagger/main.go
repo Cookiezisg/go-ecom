@@ -313,8 +313,9 @@ func generatePaths(mappings []Mapping, definitions map[string]interface{}, servi
 				},
 			}
 		} else {
-			// GET/DELETE 方法，从路径提取参数
+			// GET/DELETE 方法：先提取路径参数，再从 definitions 提取 query 参数
 			params := extractPathParams(path)
+			params = append(params, extractQueryParams(requestType, definitions)...)
 			if len(params) > 0 {
 				operation["parameters"] = params
 			}
@@ -583,6 +584,48 @@ func extractPathParams(path string) []map[string]interface{} {
 		}
 	}
 
+	return params
+}
+
+// extractQueryParams 从 definitions 中找到请求类型的字段，生成 query 参数列表
+func extractQueryParams(requestType string, definitions map[string]interface{}) []map[string]interface{} {
+	def, ok := definitions[requestType]
+	if !ok {
+		return nil
+	}
+	defMap, ok := def.(map[string]interface{})
+	if !ok {
+		return nil
+	}
+	props, ok := defMap["properties"].(map[string]interface{})
+	if !ok {
+		return nil
+	}
+
+	var params []map[string]interface{}
+	for name, schema := range props {
+		schemaMap, ok := schema.(map[string]interface{})
+		if !ok {
+			continue
+		}
+		param := map[string]interface{}{
+			"name":     name,
+			"in":       "query",
+			"required": false,
+		}
+		if t, ok := schemaMap["type"]; ok {
+			param["type"] = t
+		} else {
+			param["type"] = "string"
+		}
+		if format, ok := schemaMap["format"]; ok {
+			param["format"] = format
+		}
+		if desc, ok := schemaMap["description"]; ok {
+			param["description"] = desc
+		}
+		params = append(params, param)
+	}
 	return params
 }
 

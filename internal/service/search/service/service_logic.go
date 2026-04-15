@@ -43,6 +43,75 @@ type SearchProductsResponse struct {
 	Total   int64
 }
 
+func toInt64Value(value interface{}) int64 {
+	switch v := value.(type) {
+	case int:
+		return int64(v)
+	case int32:
+		return int64(v)
+	case int64:
+		return v
+	case uint:
+		return int64(v)
+	case uint32:
+		return int64(v)
+	case uint64:
+		return int64(v)
+	case float32:
+		return int64(v)
+	case float64:
+		return int64(v)
+	default:
+		return 0
+	}
+}
+
+func toIntValue(value interface{}) int {
+	switch v := value.(type) {
+	case int:
+		return v
+	case int32:
+		return int(v)
+	case int64:
+		return int(v)
+	case uint:
+		return int(v)
+	case uint32:
+		return int(v)
+	case uint64:
+		return int(v)
+	case float32:
+		return int(v)
+	case float64:
+		return int(v)
+	default:
+		return 0
+	}
+}
+
+func toFloat64Value(value interface{}) float64 {
+	switch v := value.(type) {
+	case int:
+		return float64(v)
+	case int32:
+		return float64(v)
+	case int64:
+		return float64(v)
+	case uint:
+		return float64(v)
+	case uint32:
+		return float64(v)
+	case uint64:
+		return float64(v)
+	case float32:
+		return float64(v)
+	case float64:
+		return v
+	default:
+		return 0
+	}
+}
+
 // SearchProducts 搜索商品
 func (l *SearchLogic) SearchProducts(ctx context.Context, req *SearchProductsRequest) (*SearchProductsResponse, error) {
 	results, total, err := l.searchRepo.SearchProducts(ctx, req.Keyword, req.CategoryID, req.Page, req.PageSize, req.SortBy)
@@ -55,12 +124,12 @@ func (l *SearchLogic) SearchProducts(ctx context.Context, req *SearchProductsReq
 		if r == nil {
 			continue
 		}
-		productID, _ := r["product_id"].(int64)
+		productID := toInt64Value(r["product_id"])
 		name, _ := r["name"].(string)
 		mainImage, _ := r["main_image"].(string)
-		price, _ := r["price"].(float64)
-		sales, _ := r["sales"].(int)
-		score, _ := r["score"].(float64)
+		price := toFloat64Value(r["price"])
+		sales := toIntValue(r["sales"])
+		score := toFloat64Value(r["score"])
 
 		products = append(products, &ProductSearchResult{
 			ProductID: productID,
