@@ -140,6 +140,18 @@ textarea {
   grid-template-columns: 1.4fr 1fr;
 }
 
+.dashboard-stack {
+  display: grid;
+  gap: 1rem;
+}
+
+.dashboard-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
 .stat-card,
 .table-card,
 .login-panel {
@@ -158,6 +170,38 @@ textarea {
   margin-top: 0.5rem;
   font-size: 1.75rem;
   font-weight: 600;
+}
+
+.metric-list {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.metric-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.8rem 0;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.metric-row:last-child {
+  border-bottom: 0;
+}
+
+.metric-row span {
+  color: #6b7280;
+}
+
+.metric-row strong {
+  font-weight: 600;
+}
+
+.dashboard-empty {
+  text-align: center;
+  color: #6b7280;
+  padding: 1.5rem 0.75rem;
 }
 
 .span-2 {
